@@ -1,4 +1,4 @@
-```json
+json
 {
   "name": "MotoRange",
   "short_name": "MotoRange",
@@ -9,4 +9,3 @@
   "theme_color": "#080706",
   "orientation": "portrait"
 }
-```
