@@ -1,0 +1,12 @@
+```json
+{
+  "name": "MotoRange",
+  "short_name": "MotoRange",
+  "description": "Autonomía inteligente para motocicletas",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#080706",
+  "theme_color": "#080706",
+  "orientation": "portrait"
+}
+```
