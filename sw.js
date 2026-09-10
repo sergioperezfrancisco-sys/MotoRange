@@ -1,4 +1,3 @@
-```javascript
 const CACHE_NAME = "motorange-v1";
 
 const APP_FILES = [
@@ -34,4 +33,4 @@ self.addEventListener("fetch", event => {
         return cachedResponse || fetch(event.request);
       })
   );
-});```
+});
