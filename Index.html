@@ -1,0 +1,2470 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#080706">
+<title>MotoRange</title>
+
+<style>
+:root{
+  --bg:#080706;
+  --surface:#11100E;
+  --surface-2:#191713;
+  --border:#302A20;
+  --ochre:#B88A3B;
+  --light-ochre:#D0A653;
+  --bronze:#8F6728;
+  --cream:#F1E5CC;
+  --text:#F4EFE5;
+  --muted:#9C9385;
+  --warning:#C28A3E;
+  --danger:#A94A3F;
+  --fuel-normal:var(--ochre);
+  --fuel-low:var(--warning);
+  --fuel-danger:var(--danger);
+  --shadow:0 18px 45px rgba(0,0,0,.42);
+  --radius:22px;
+}
+
+*{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+}
+
+html{
+  background:var(--bg);
+}
+
+body{
+  margin:0;
+  min-height:100vh;
+  background:
+    radial-gradient(circle at 50% -10%,rgba(143,103,40,.14),transparent 38%),
+    var(--bg);
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",Inter,Segoe UI,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+
+button,
+input{
+  font:inherit;
+}
+
+button{
+  cursor:pointer;
+}
+
+.app{
+  width:100%;
+  max-width:620px;
+  margin:0 auto;
+  min-height:100vh;
+  padding-bottom:100px;
+}
+
+header{
+  padding:24px 20px 8px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:11px;
+}
+
+.logo{
+  width:40px;
+  height:40px;
+  border-radius:13px;
+  display:grid;
+  place-items:center;
+  background:linear-gradient(145deg,var(--light-ochre),var(--ochre));
+  color:#080706;
+  font-weight:900;
+  font-size:18px;
+  box-shadow:0 8px 20px rgba(184,138,59,.2);
+}
+
+.brand-text strong{
+  display:block;
+  font-size:18px;
+  letter-spacing:-.4px;
+}
+
+.brand-text span{
+  display:block;
+  color:var(--muted);
+  font-size:11px;
+  margin-top:2px;
+  letter-spacing:.5px;
+  text-transform:uppercase;
+}
+
+.header-bike{
+  color:var(--muted);
+  font-size:12px;
+  max-width:160px;
+  text-align:right;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.page{
+  display:none;
+  padding:12px 16px 30px;
+}
+
+.page.active{
+  display:block;
+}
+
+.hero{
+  background:
+    linear-gradient(145deg,rgba(208,166,83,.07),transparent 60%),
+    var(--surface);
+  border:1px solid var(--border);
+  border-radius:28px;
+  padding:22px 18px 20px;
+  box-shadow:var(--shadow);
+  position:relative;
+  overflow:hidden;
+}
+
+.hero::after{
+  content:"";
+  position:absolute;
+  width:180px;
+  height:180px;
+  border-radius:50%;
+  right:-90px;
+  top:-90px;
+  border:1px solid rgba(208,166,83,.08);
+}
+
+.eyebrow{
+  color:var(--muted);
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+}
+
+.range-wrap{
+  text-align:center;
+  padding:14px 0 8px;
+}
+
+.range{
+  font-size:clamp(66px,18vw,100px);
+  line-height:.95;
+  letter-spacing:-5px;
+  color:var(--light-ochre);
+  font-weight:800;
+  font-variant-numeric:tabular-nums;
+}
+
+.range-unit{
+  color:var(--muted);
+  font-size:14px;
+  margin-top:7px;
+}
+
+.ring{
+  width:180px;
+  height:180px;
+  margin:20px auto 14px;
+  position:relative;
+  display:grid;
+  place-items:center;
+}
+
+.ring svg{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  transform:rotate(-90deg);
+}
+
+.ring-track{
+  fill:none;
+  stroke:var(--surface-2);
+  stroke-width:11;
+}
+
+.ring-progress{
+  fill:none;
+  stroke:var(--fuel-normal);
+  stroke-width:11;
+  stroke-linecap:round;
+  transition:stroke-dashoffset .35s ease,stroke .25s ease;
+}
+
+.ring-content{
+  position:relative;
+  text-align:center;
+}
+
+.ring-fuel{
+  font-size:27px;
+  font-weight:800;
+  font-variant-numeric:tabular-nums;
+}
+
+.ring-label{
+  font-size:10px;
+  color:var(--muted);
+  letter-spacing:1px;
+  text-transform:uppercase;
+  margin-top:3px;
+}
+
+.stats{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin-top:14px;
+}
+
+.stat{
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:13px 10px;
+  min-width:0;
+}
+
+.stat-label{
+  color:var(--muted);
+  font-size:9px;
+  text-transform:uppercase;
+  letter-spacing:.8px;
+  margin-bottom:6px;
+}
+
+.stat-value{
+  font-size:17px;
+  font-weight:750;
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.progress-box{
+  margin-top:12px;
+}
+
+.progress-header{
+  display:flex;
+  justify-content:space-between;
+  color:var(--muted);
+  font-size:11px;
+  margin-bottom:7px;
+}
+
+.progress{
+  height:8px;
+  border-radius:99px;
+  background:var(--surface-2);
+  overflow:hidden;
+}
+
+.progress-bar{
+  height:100%;
+  width:0;
+  border-radius:99px;
+  background:var(--fuel-normal);
+  transition:width .3s ease,background .25s ease;
+}
+
+.alert{
+  display:none;
+  margin-top:12px;
+  padding:13px 14px;
+  border-radius:15px;
+  font-size:12px;
+  line-height:1.45;
+  border:1px solid;
+}
+
+.alert.show{
+  display:block;
+}
+
+.alert.warning{
+  background:rgba(194,138,62,.09);
+  border-color:rgba(194,138,62,.35);
+  color:#D8B277;
+}
+
+.alert.danger{
+  background:rgba(169,74,63,.10);
+  border-color:rgba(169,74,63,.38);
+  color:#D28A82;
+}
+
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:18px;
+  margin-top:12px;
+  box-shadow:0 10px 30px rgba(0,0,0,.18);
+}
+
+.card-title{
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:14px;
+}
+
+.consumption-main{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.consumption-number{
+  color:var(--light-ochre);
+  font-size:32px;
+  line-height:1;
+  font-weight:800;
+  font-variant-numeric:tabular-nums;
+}
+
+.consumption-unit{
+  color:var(--muted);
+  font-size:11px;
+}
+
+.consumption-source{
+  color:var(--muted);
+  font-size:11px;
+  text-align:right;
+  line-height:1.4;
+}
+
+.button{
+  width:100%;
+  border:0;
+  border-radius:16px;
+  min-height:52px;
+  padding:13px 16px;
+  font-weight:800;
+  letter-spacing:.2px;
+  transition:transform .12s ease,opacity .12s ease;
+}
+
+.button:active{
+  transform:scale(.98);
+}
+
+.button.primary{
+  background:linear-gradient(145deg,var(--light-ochre),var(--ochre));
+  color:#080706;
+}
+
+.button.secondary{
+  background:var(--surface-2);
+  color:var(--cream);
+  border:1px solid var(--bronze);
+}
+
+.button.danger{
+  background:rgba(169,74,63,.12);
+  color:#D28A82;
+  border:1px solid rgba(169,74,63,.4);
+}
+
+.button-row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:9px;
+}
+
+.bottom-nav{
+  position:fixed;
+  left:50%;
+  bottom:14px;
+  transform:translateX(-50%);
+  width:min(calc(100% - 24px),580px);
+  z-index:50;
+  background:rgba(17,16,14,.94);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+  border:1px solid var(--border);
+  border-radius:22px;
+  padding:6px;
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  box-shadow:0 16px 45px rgba(0,0,0,.55);
+}
+
+.nav-btn{
+  border:0;
+  background:transparent;
+  color:var(--muted);
+  border-radius:16px;
+  padding:9px 4px 8px;
+  font-size:10px;
+  font-weight:750;
+}
+
+.nav-icon{
+  display:block;
+  font-size:19px;
+  line-height:20px;
+  margin-bottom:3px;
+}
+
+.nav-btn.active{
+  color:#080706;
+  background:var(--ochre);
+}
+
+.page-heading{
+  padding:7px 4px 14px;
+}
+
+.page-heading h1{
+  margin:0;
+  font-size:29px;
+  letter-spacing:-1px;
+}
+
+.page-heading p{
+  color:var(--muted);
+  font-size:12px;
+  margin:6px 0 0;
+}
+
+.history-stats{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:8px;
+  margin-bottom:12px;
+}
+
+.history-stat{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:17px;
+  padding:13px;
+}
+
+.history-stat span{
+  display:block;
+  color:var(--muted);
+  font-size:9px;
+  text-transform:uppercase;
+  letter-spacing:.7px;
+  margin-bottom:6px;
+}
+
+.history-stat strong{
+  font-size:17px;
+  font-variant-numeric:tabular-nums;
+}
+
+.history-item{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:19px;
+  padding:15px;
+  margin-bottom:9px;
+}
+
+.history-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.history-date{
+  color:var(--muted);
+  font-size:11px;
+}
+
+.badge{
+  padding:5px 8px;
+  border-radius:8px;
+  font-size:9px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.5px;
+}
+
+.badge.full{
+  color:var(--light-ochre);
+  background:rgba(184,138,59,.12);
+  border:1px solid rgba(184,138,59,.25);
+}
+
+.badge.partial{
+  color:#D8B277;
+  background:rgba(194,138,62,.09);
+  border:1px solid rgba(194,138,62,.25);
+}
+
+.badge.legacy{
+  color:var(--muted);
+  background:var(--surface-2);
+  border:1px solid var(--border);
+}
+
+.history-main{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:13px;
+}
+
+.history-cell{
+  background:var(--surface-2);
+  border-radius:12px;
+  padding:10px;
+}
+
+.history-cell span{
+  display:block;
+  color:var(--muted);
+  font-size:9px;
+  margin-bottom:4px;
+}
+
+.history-cell strong{
+  font-size:14px;
+  font-variant-numeric:tabular-nums;
+}
+
+.history-cycle{
+  margin-top:9px;
+  padding:10px 11px;
+  border-radius:12px;
+  background:rgba(184,138,59,.07);
+  color:var(--cream);
+  font-size:11px;
+}
+
+.history-cycle strong{
+  color:var(--light-ochre);
+}
+
+.history-empty{
+  text-align:center;
+  padding:45px 20px;
+  color:var(--muted);
+  font-size:13px;
+}
+
+.field{
+  margin-bottom:14px;
+}
+
+.field:last-child{
+  margin-bottom:0;
+}
+
+.field label{
+  display:block;
+  font-size:11px;
+  color:var(--muted);
+  font-weight:700;
+  margin:0 0 7px 2px;
+}
+
+.input{
+  width:100%;
+  min-height:48px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:var(--surface-2);
+  color:var(--text);
+  padding:11px 13px;
+  outline:none;
+  font-size:16px;
+}
+
+.input:focus{
+  border-color:var(--bronze);
+  box-shadow:0 0 0 3px rgba(184,138,59,.08);
+}
+
+.input::placeholder{
+  color:#665F54;
+}
+
+.input-row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+
+.toggle-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+  padding:5px 0;
+}
+
+.toggle-text strong{
+  display:block;
+  font-size:13px;
+}
+
+.toggle-text span{
+  display:block;
+  color:var(--muted);
+  font-size:10px;
+  margin-top:4px;
+  line-height:1.35;
+}
+
+.toggle{
+  width:49px;
+  height:29px;
+  border-radius:99px;
+  border:1px solid var(--border);
+  background:var(--surface-2);
+  padding:2px;
+  flex:none;
+}
+
+.toggle span{
+  display:block;
+  width:23px;
+  height:23px;
+  border-radius:50%;
+  background:#776E61;
+  transition:transform .2s ease,background .2s ease;
+}
+
+.toggle.on{
+  background:rgba(184,138,59,.22);
+  border-color:var(--bronze);
+}
+
+.toggle.on span{
+  transform:translateX(19px);
+  background:var(--light-ochre);
+}
+
+.settings-note{
+  color:var(--muted);
+  font-size:10px;
+  line-height:1.5;
+  margin-top:9px;
+}
+
+.learned-box{
+  margin-top:12px;
+  padding:13px;
+  border-radius:14px;
+  background:rgba(184,138,59,.06);
+  border:1px solid rgba(184,138,59,.17);
+}
+
+.learned-box .learned-value{
+  color:var(--light-ochre);
+  font-size:22px;
+  font-weight:800;
+}
+
+.learned-box .learned-meta{
+  color:var(--muted);
+  font-size:10px;
+  margin-top:3px;
+}
+
+.modal-backdrop{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.72);
+  z-index:100;
+  align-items:flex-end;
+  justify-content:center;
+  padding:12px;
+}
+
+.modal-backdrop.show{
+  display:flex;
+}
+
+.modal{
+  width:min(100%,620px);
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:27px 27px 20px 20px;
+  padding:20px;
+  box-shadow:0 -20px 70px rgba(0,0,0,.55);
+  max-height:90vh;
+  overflow:auto;
+}
+
+.modal-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:18px;
+}
+
+.modal-header h2{
+  font-size:21px;
+  margin:0;
+  letter-spacing:-.5px;
+}
+
+.close{
+  width:36px;
+  height:36px;
+  border:1px solid var(--border);
+  background:var(--surface-2);
+  color:var(--muted);
+  border-radius:12px;
+  font-size:20px;
+}
+
+.type-selector{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-bottom:16px;
+}
+
+.type-btn{
+  min-height:48px;
+  border-radius:14px;
+  background:var(--surface-2);
+  color:var(--muted);
+  border:1px solid var(--border);
+  font-weight:800;
+  font-size:11px;
+}
+
+.type-btn.selected{
+  color:#080706;
+  background:var(--ochre);
+  border-color:var(--ochre);
+}
+
+.modal-help{
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  border-radius:13px;
+  padding:11px;
+  margin-bottom:14px;
+  color:var(--muted);
+  font-size:10px;
+  line-height:1.45;
+}
+
+.toast{
+  position:fixed;
+  left:50%;
+  bottom:94px;
+  transform:translate(-50%,15px);
+  z-index:200;
+  background:#211E19;
+  border:1px solid var(--bronze);
+  color:var(--cream);
+  border-radius:14px;
+  padding:11px 15px;
+  font-size:11px;
+  box-shadow:var(--shadow);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .2s ease,transform .2s ease;
+  width:max-content;
+  max-width:calc(100% - 30px);
+  text-align:center;
+}
+
+.toast.show{
+  opacity:1;
+  transform:translate(-50%,0);
+}
+
+.hidden{
+  display:none!important;
+}
+
+@media(min-width:700px){
+  .app{
+    padding-bottom:115px;
+  }
+  .page{
+    padding-left:0;
+    padding-right:0;
+  }
+  header{
+    padding-left:0;
+    padding-right:0;
+  }
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+<header>
+  <div class="brand">
+    <div class="logo">M</div>
+    <div class="brand-text">
+      <strong>MotoRange</strong>
+      <span>Autonomía inteligente</span>
+    </div>
+  </div>
+  <div class="header-bike" id="headerBike">Voge 900 DSX</div>
+</header>
+
+<main>
+
+<section class="page active" id="page-home">
+  <div class="hero">
+    <div class="eyebrow">Autonomía restante</div>
+
+    <div class="range-wrap">
+      <div class="range" id="rangeValue">0</div>
+      <div class="range-unit">km estimados</div>
+    </div>
+
+    <div class="ring">
+      <svg viewBox="0 0 180 180">
+        <circle class="ring-track" cx="90" cy="90" r="76"></circle>
+        <circle class="ring-progress" id="ringProgress" cx="90" cy="90" r="76"></circle>
+      </svg>
+      <div class="ring-content">
+        <div class="ring-fuel" id="fuelValue">0,0 L</div>
+        <div class="ring-label">combustible</div>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-label">Consumo actual</div>
+        <div class="stat-value" id="homeConsumption">0,0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Km actuales</div>
+        <div class="stat-value" id="homeKm">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Depósito</div>
+        <div class="stat-value" id="homeCapacity">0,0 L</div>
+      </div>
+    </div>
+
+    <div class="progress-box">
+      <div class="progress-header">
+        <span>Combustible disponible</span>
+        <span id="fuelPercentage">0%</span>
+      </div>
+      <div class="progress">
+        <div class="progress-bar" id="fuelProgress"></div>
+      </div>
+    </div>
+
+    <div class="alert warning" id="lowAlert"></div>
+    <div class="alert danger" id="reserveAlert"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Consumo actual</div>
+    <div class="consumption-main">
+      <div>
+        <span class="consumption-number" id="consumptionMain">0,00</span>
+        <span class="consumption-unit">L/100 km</span>
+      </div>
+      <div class="consumption-source" id="consumptionSource">Estimación inicial</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Acciones</div>
+    <button class="button primary" id="openRefuelBtn">REGISTRAR REPOSTAJE</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Estado del viaje</div>
+    <div class="field">
+      <label for="kmInput">KM DESDE EL ÚLTIMO REPOSTAJE</label>
+      <input class="input" id="kmInput" type="number" min="0" step="0.1" inputmode="decimal">
+    </div>
+    <div class="settings-note">
+      Este valor representa el kilometraje actual del tramo desde el último repostaje. Cambiarlo no acumula kilómetros automáticamente.
+    </div>
+  </div>
+</section>
+
+<section class="page" id="page-history">
+  <div class="page-heading">
+    <h1>Historial</h1>
+    <p>Repostajes y aprendizaje del consumo real.</p>
+  </div>
+
+  <div class="history-stats">
+    <div class="history-stat">
+      <span>Consumo real acumulado</span>
+      <strong id="statRealConsumption">--</strong>
+    </div>
+    <div class="history-stat">
+      <span>Km analizados</span>
+      <strong id="statAnalyzedKm">0 km</strong>
+    </div>
+    <div class="history-stat">
+      <span>Litros analizados</span>
+      <strong id="statAnalyzedLiters">0 L</strong>
+    </div>
+    <div class="history-stat">
+      <span>Confianza</span>
+      <strong id="statConfidence">Datos iniciales</strong>
+    </div>
+    <div class="history-stat">
+      <span>Consumo inicial</span>
+      <strong id="statInitialConsumption">0,0</strong>
+    </div>
+    <div class="history-stat">
+      <span>Km medios</span>
+      <strong id="statAverageKm">0 km</strong>
+    </div>
+    <div class="history-stat">
+      <span>Precio medio/L</span>
+      <strong id="statAveragePrice">--</strong>
+    </div>
+    <div class="history-stat">
+      <span>Coste/100 km</span>
+      <strong id="statCost100">--</strong>
+    </div>
+    <div class="history-stat">
+      <span>Ciclos completos</span>
+      <strong id="statCycles">0</strong>
+    </div>
+  </div>
+
+  <div id="historyList"></div>
+
+  <div class="card">
+    <button class="button danger" id="clearHistoryBtn">BORRAR HISTORIAL</button>
+    <div class="settings-note">
+      Borrar el historial no borra el consumo real aprendido ni la configuración de la moto.
+    </div>
+  </div>
+</section>
+
+<section class="page" id="page-settings">
+  <div class="page-heading">
+    <h1>Ajustes</h1>
+    <p>Configuración de MotoRange y del depósito.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Motocicleta</div>
+
+    <div class="field">
+      <label for="bikeNameInput">NOMBRE</label>
+      <input class="input" id="bikeNameInput" type="text" maxlength="60">
+    </div>
+
+    <div class="input-row">
+      <div class="field">
+        <label for="capacityInput">CAPACIDAD · L</label>
+        <input class="input" id="capacityInput" type="number" min="0.1" step="0.1" inputmode="decimal">
+      </div>
+
+      <div class="field">
+        <label for="consumptionInput">CONSUMO INICIAL · L/100 KM</label>
+        <input class="input" id="consumptionInput" type="number" min="0.1" step="0.1" inputmode="decimal">
+      </div>
+    </div>
+
+    <div class="settings-note">
+      El consumo inicial solo se utiliza como estimación mientras no existan ciclos completos válidos. No sobrescribe el consumo real aprendido.
+    </div>
+
+    <div class="learned-box" id="learnedBox">
+      <div class="learned-value" id="learnedValue">Sin datos reales</div>
+      <div class="learned-meta" id="learnedMeta">El aprendizaje aparecerá después de completar un ciclo válido.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Reserva</div>
+
+    <div class="toggle-row">
+      <div class="toggle-text">
+        <strong>Alerta de reserva</strong>
+        <span>Se activa cuando el combustible disponible baja hasta los litros configurados.</span>
+      </div>
+      <button class="toggle" id="reserveToggle" type="button" aria-label="Activar reserva">
+        <span></span>
+      </button>
+    </div>
+
+    <div class="field" style="margin-top:15px">
+      <label for="reserveInput">RESERVA · L</label>
+      <input class="input" id="reserveInput" type="number" min="0" step="0.1" inputmode="decimal">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Combustible actual</div>
+
+    <div class="field">
+      <label for="fuelInput">LITROS DISPONIBLES DESPUÉS DEL ÚLTIMO REPOSTAJE</label>
+      <input class="input" id="fuelInput" type="number" min="0" step="0.1" inputmode="decimal">
+    </div>
+
+    <div class="settings-note">
+      El combustible se mantiene como referencia del tramo actual. Los kilómetros no lo reducen físicamente, solo se calcula el combustible restante estimado.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Datos aprendidos</div>
+    <div class="history-stats" style="margin:0">
+      <div class="history-stat">
+        <span>Km acumulados</span>
+        <strong id="settingsLearnedKm">0 km</strong>
+      </div>
+      <div class="history-stat">
+        <span>Litros acumulados</span>
+        <strong id="settingsLearnedLiters">0 L</strong>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<nav class="bottom-nav">
+  <button class="nav-btn active" data-page="home">
+    <span class="nav-icon">⌂</span>
+    Inicio
+  </button>
+  <button class="nav-btn" data-page="history">
+    <span class="nav-icon">▤</span>
+    Historial
+  </button>
+  <button class="nav-btn" data-page="settings">
+    <span class="nav-icon">⚙</span>
+    Ajustes
+  </button>
+</nav>
+
+</div>
+
+<div class="modal-backdrop" id="refuelModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Registrar repostaje</h2>
+      <button class="close" id="closeRefuelBtn" type="button">×</button>
+    </div>
+
+    <div class="type-selector">
+      <button class="type-btn selected" id="fullTypeBtn" type="button">DEPÓSITO LLENO</button>
+      <button class="type-btn" id="partialTypeBtn" type="button">PARCIAL</button>
+    </div>
+
+    <div class="modal-help" id="refuelHelp">
+      Al llenar el depósito, MotoRange cerrará el ciclo anterior y calculará el consumo real únicamente si existen kilómetros y litros válidos.
+    </div>
+
+    <div class="field">
+      <label for="refuelLiters">LITROS REPOSTADOS</label>
+      <input class="input" id="refuelLiters" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="Ej. 12,50">
+    </div>
+
+    <div class="input-row">
+      <div class="field">
+        <label for="refuelPrice">PRECIO/L · OPCIONAL</label>
+        <input class="input" id="refuelPrice" type="number" min="0" step="0.001" inputmode="decimal" placeholder="Ej. 1,579">
+      </div>
+
+      <div class="field">
+        <label for="refuelCost">COSTE · OPCIONAL</label>
+        <input class="input" id="refuelCost" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ej. 20,00">
+      </div>
+    </div>
+
+    <button class="button primary" id="saveRefuelBtn" type="button">GUARDAR REPOSTAJE</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+
+const STORAGE_KEY = "motorange_app_v2";
+const STORAGE_VERSION = 2;
+const LEGACY_STORAGE_KEY = "motorange_app_v1";
+
+const DEFAULT_DATA = {
+  version: STORAGE_VERSION,
+  bikeName: "Voge 900 DSX",
+  capacity: 17,
+  consumoInicial: 5.0,
+  reserve: 3.0,
+  reserveEnabled: true,
+
+  // Combustible disponible inmediatamente después del último repostaje.
+  fuel: 17,
+
+  // Estado actual del tramo desde el último repostaje.
+  kmSinceRefuel: 0,
+
+  // Acumuladores del ciclo actual desde el último depósito lleno.
+  // Solo se modifican al registrar un repostaje.
+  kmSinceFullTank: 0,
+  litersSinceFullTank: 0,
+
+  // Datos utilizados exclusivamente para aprendizaje real.
+  totalKmForConsumption: 0,
+  totalLitersForConsumption: 0,
+  realConsumption: null,
+
+  history: []
+};
+
+let appData = loadData();
+let currentPage = "home";
+let refuelType = "full";
+
+function finiteNumber(value, fallback = 0){
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function positiveNumber(value, fallback){
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
+function nonNegativeNumber(value, fallback = 0){
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 0 ? n : fallback;
+}
+
+function clamp(value, min, max){
+  return Math.min(max, Math.max(min, value));
+}
+
+function formatNumber(value, decimals = 1){
+  const n = finiteNumber(value, 0);
+  return n.toLocaleString("es-ES", {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  });
+}
+
+function formatInteger(value){
+  return Math.round(finiteNumber(value, 0)).toLocaleString("es-ES");
+}
+
+function formatOptional(value, decimals = 2, suffix = ""){
+  const n = Number(value);
+  if(!Number.isFinite(n)) return "--";
+  return formatNumber(n, decimals) + suffix;
+}
+
+function normalizeHistoryEntry(entry){
+  if(!entry || typeof entry !== "object") return null;
+
+  const date = typeof entry.date === "string" && entry.date
+    ? entry.date
+    : new Date().toISOString();
+
+  const liters = nonNegativeNumber(entry.liters, 0);
+  const km = nonNegativeNumber(entry.km, 0);
+
+  let type = entry.type;
+  if(type !== "full" && type !== "partial" && type !== "legacy"){
+    type = "legacy";
+  }
+
+  const cycleKm = Number.isFinite(Number(entry.cycleKm))
+    ? nonNegativeNumber(entry.cycleKm, 0)
+    : null;
+
+  const cycleLiters = Number.isFinite(Number(entry.cycleLiters))
+    ? nonNegativeNumber(entry.cycleLiters, 0)
+    : null;
+
+  const consumption = Number.isFinite(Number(entry.consumption)) && Number(entry.consumption) > 0
+    ? Number(entry.consumption)
+    : null;
+
+  const price = Number.isFinite(Number(entry.price)) && Number(entry.price) >= 0
+    ? Number(entry.price)
+    : null;
+
+  const cost = Number.isFinite(Number(entry.cost)) && Number(entry.cost) >= 0
+    ? Number(entry.cost)
+    : null;
+
+  return {
+    date,
+    type,
+    liters,
+    km,
+    cycleKm,
+    cycleLiters,
+    consumption,
+    price,
+    cost
+  };
+}
+
+function normalizeData(raw){
+  const data = {
+    ...DEFAULT_DATA,
+    ...(raw && typeof raw === "object" ? raw : {})
+  };
+
+  data.version = STORAGE_VERSION;
+
+  data.bikeName =
+    typeof data.bikeName === "string" && data.bikeName.trim()
+      ? data.bikeName.trim()
+      : DEFAULT_DATA.bikeName;
+
+  data.capacity = positiveNumber(data.capacity, DEFAULT_DATA.capacity);
+  data.consumoInicial = positiveNumber(
+    data.consumoInicial ?? data.consumption,
+    DEFAULT_DATA.consumoInicial
+  );
+
+  data.reserve = nonNegativeNumber(data.reserve, DEFAULT_DATA.reserve);
+  data.reserveEnabled = Boolean(data.reserveEnabled);
+
+  data.fuel = nonNegativeNumber(data.fuel, DEFAULT_DATA.fuel);
+  data.kmSinceRefuel = nonNegativeNumber(
+    data.kmSinceRefuel ?? data.km,
+    DEFAULT_DATA.kmSinceRefuel
+  );
+
+  data.kmSinceFullTank = nonNegativeNumber(
+    data.kmSinceFullTank,
+    DEFAULT_DATA.kmSinceFullTank
+  );
+
+  data.litersSinceFullTank = nonNegativeNumber(
+    data.litersSinceFullTank,
+    DEFAULT_DATA.litersSinceFullTank
+  );
+
+  data.totalKmForConsumption = nonNegativeNumber(
+    data.totalKmForConsumption,
+    0
+  );
+
+  data.totalLitersForConsumption = nonNegativeNumber(
+    data.totalLitersForConsumption,
+    0
+  );
+
+  data.realConsumption =
+    Number.isFinite(Number(data.realConsumption)) &&
+    Number(data.realConsumption) > 0
+      ? Number(data.realConsumption)
+      : null;
+
+  if(data.totalKmForConsumption > 0 && data.totalLitersForConsumption > 0){
+    data.realConsumption =
+      data.totalLitersForConsumption /
+      data.totalKmForConsumption * 100;
+  }else{
+    data.totalKmForConsumption = 0;
+    data.totalLitersForConsumption = 0;
+    data.realConsumption = null;
+  }
+
+  if(!Array.isArray(data.history)){
+    data.history = [];
+  }
+
+  data.history = data.history
+    .map(normalizeHistoryEntry)
+    .filter(Boolean);
+
+  return data;
+}
+
+function migrateLegacyData(){
+  try{
+    const rawLegacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+
+    if(!rawLegacy){
+      return normalizeData(DEFAULT_DATA);
+    }
+
+    const legacy = JSON.parse(rawLegacy);
+
+    const migrated = {
+      ...DEFAULT_DATA,
+
+      bikeName:
+        typeof legacy.bikeName === "string" && legacy.bikeName.trim()
+          ? legacy.bikeName.trim()
+          : DEFAULT_DATA.bikeName,
+
+      capacity: positiveNumber(
+        legacy.capacity,
+        DEFAULT_DATA.capacity
+      ),
+
+      consumoInicial: positiveNumber(
+        legacy.consumoInicial ?? legacy.consumption,
+        DEFAULT_DATA.consumoInicial
+      ),
+
+      reserve: nonNegativeNumber(
+        legacy.reserve,
+        DEFAULT_DATA.reserve
+      ),
+
+      reserveEnabled:
+        legacy.reserveEnabled === undefined
+          ? DEFAULT_DATA.reserveEnabled
+          : Boolean(legacy.reserveEnabled),
+
+      fuel: nonNegativeNumber(
+        legacy.fuel,
+        DEFAULT_DATA.fuel
+      ),
+
+      kmSinceRefuel: nonNegativeNumber(
+        legacy.kmSinceRefuel ?? legacy.km,
+        DEFAULT_DATA.kmSinceRefuel
+      ),
+
+      // Legacy data cannot reliably seed real consumption.
+      kmSinceFullTank: 0,
+      litersSinceFullTank: 0,
+      totalKmForConsumption: 0,
+      totalLitersForConsumption: 0,
+      realConsumption: null,
+
+      history: Array.isArray(legacy.history)
+        ? legacy.history.map(item => ({
+            date:
+              typeof item.date === "string"
+                ? item.date
+                : new Date().toISOString(),
+            type: "legacy",
+            liters: nonNegativeNumber(item.liters, 0),
+            km: nonNegativeNumber(item.km, 0),
+            cycleKm: null,
+            cycleLiters: null,
+            consumption: null,
+            price:
+              Number.isFinite(Number(item.price)) &&
+              Number(item.price) >= 0
+                ? Number(item.price)
+                : null,
+            cost:
+              Number.isFinite(Number(item.cost)) &&
+              Number(item.cost) >= 0
+                ? Number(item.cost)
+                : null
+          }))
+        : []
+    };
+
+    return normalizeData(migrated);
+
+  }catch(error){
+    return normalizeData(DEFAULT_DATA);
+  }
+}
+
+function loadData(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+
+    if(raw){
+      return normalizeData(JSON.parse(raw));
+    }
+
+    return migrateLegacyData();
+
+  }catch(error){
+    return normalizeData(DEFAULT_DATA);
+  }
+}
+
+function saveData(){
+  try{
+    const serializable = {
+      ...appData,
+      version: STORAGE_VERSION,
+
+      // Compatibility aliases for older versions.
+      km: appData.kmSinceRefuel,
+      consumption: appData.consumoInicial
+    };
+
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(serializable)
+    );
+  }catch(error){
+    // Storage errors should never break the calculator.
+  }
+}
+
+function getCurrentConsumption(){
+  if(
+    Number.isFinite(appData.realConsumption) &&
+    appData.realConsumption > 0 &&
+    appData.totalKmForConsumption > 0 &&
+    appData.totalLitersForConsumption > 0
+  ){
+    return appData.realConsumption;
+  }
+
+  return positiveNumber(
+    appData.consumoInicial,
+    DEFAULT_DATA.consumoInicial
+  );
+}
+
+function calculate(){
+  const capacity = positiveNumber(appData.capacity, DEFAULT_DATA.capacity);
+  const consumption = positiveNumber(
+    getCurrentConsumption(),
+    DEFAULT_DATA.consumoInicial
+  );
+
+  const fuel = nonNegativeNumber(appData.fuel, 0);
+  const km = nonNegativeNumber(appData.kmSinceRefuel, 0);
+
+  const consumed =
+    km * consumption / 100;
+
+  const remaining =
+    Math.max(0, fuel - consumed);
+
+  const range =
+    Math.max(
+      0,
+      remaining * 100 / consumption
+    );
+
+  const totalRange =
+    Math.max(
+      0,
+      capacity * 100 / consumption
+    );
+
+  const percentage =
+    clamp(
+      remaining / capacity * 100,
+      0,
+      100
+    );
+
+  return {
+    capacity,
+    consumption,
+    fuel,
+    km,
+    consumed,
+    remaining,
+    range,
+    totalRange,
+    percentage
+  };
+}
+
+function getFuelSemanticState(calc){
+  if(calc.remaining <= 0){
+    return {
+      className:"danger",
+      color:"var(--fuel-danger)"
+    };
+  }
+
+  if(
+    appData.reserveEnabled &&
+    calc.remaining <= appData.reserve
+  ){
+    return {
+      className:"danger",
+      color:"var(--fuel-danger)"
+    };
+  }
+
+  if(calc.percentage <= 30){
+    return {
+      className:"low",
+      color:"var(--fuel-low)"
+    };
+  }
+
+  return {
+    className:"normal",
+    color:"var(--fuel-normal)"
+  };
+}
+
+function renderHome(){
+  const calc = calculate();
+  const semantic = getFuelSemanticState(calc);
+
+  document.getElementById("rangeValue").textContent =
+    formatInteger(calc.range);
+
+  document.getElementById("fuelValue").textContent =
+    formatNumber(calc.remaining, 1) + " L";
+
+  document.getElementById("homeConsumption").textContent =
+    formatNumber(calc.consumption, 2);
+
+  document.getElementById("homeKm").textContent =
+    formatInteger(calc.km);
+
+  document.getElementById("homeCapacity").textContent =
+    formatNumber(calc.capacity, 1) + " L";
+
+  document.getElementById("fuelPercentage").textContent =
+    formatNumber(calc.percentage, 0) + "%";
+
+  const progress = document.getElementById("fuelProgress");
+  progress.style.width = calc.percentage + "%";
+  progress.style.background = semantic.color;
+
+  const ring = document.getElementById("ringProgress");
+  const circumference = 2 * Math.PI * 76;
+
+  ring.style.strokeDasharray = circumference;
+  ring.style.strokeDashoffset =
+    circumference * (1 - calc.percentage / 100);
+
+  ring.style.stroke = semantic.color;
+
+  document.getElementById("consumptionMain").textContent =
+    formatNumber(calc.consumption, 2);
+
+  const source = document.getElementById("consumptionSource");
+
+  if(
+    appData.realConsumption !== null &&
+    appData.totalKmForConsumption > 0
+  ){
+    source.innerHTML =
+      "Basado en <strong>" +
+      formatInteger(appData.totalKmForConsumption) +
+      " km reales</strong>";
+  }else{
+    source.textContent = "Estimación inicial";
+  }
+
+  const lowAlert = document.getElementById("lowAlert");
+  const reserveAlert = document.getElementById("reserveAlert");
+
+  lowAlert.className = "alert warning";
+  reserveAlert.className = "alert danger";
+
+  if(calc.remaining <= 0){
+    reserveAlert.classList.add("show");
+    reserveAlert.textContent =
+      "Sin combustible estimado. La autonomía restante ha llegado a 0 km.";
+  }else if(
+    appData.reserveEnabled &&
+    calc.remaining <= appData.reserve
+  ){
+    reserveAlert.classList.add("show");
+    reserveAlert.textContent =
+      "RESERVA: quedan aproximadamente " +
+      formatNumber(calc.remaining,1) +
+      " L, por debajo del nivel configurado de " +
+      formatNumber(appData.reserve,1) +
+      " L.";
+  }else if(calc.percentage <= 30){
+    lowAlert.classList.add("show");
+    lowAlert.textContent =
+      "Nivel bajo: quedan aproximadamente " +
+      formatNumber(calc.remaining,1) +
+      " L.";
+  }
+
+  // Important: rendering only reflects state.
+  // It never modifies kmSinceFullTank, litersSinceFullTank,
+  // fuel or any learning accumulator.
+  const kmInput = document.getElementById("kmInput");
+
+  if(document.activeElement !== kmInput){
+    kmInput.value =
+      formatInputValue(appData.kmSinceRefuel);
+  }
+
+  document.getElementById("headerBike").textContent =
+    appData.bikeName;
+}
+
+function renderHistory(){
+  const history = Array.isArray(appData.history)
+    ? appData.history
+    : [];
+
+  const validCycles = history.filter(item =>
+    item.type === "full" &&
+    Number.isFinite(item.consumption) &&
+    item.consumption > 0 &&
+    Number.isFinite(item.cycleKm) &&
+    item.cycleKm > 0 &&
+    Number.isFinite(item.cycleLiters) &&
+    item.cycleLiters > 0
+  );
+
+  document.getElementById("statRealConsumption").textContent =
+    appData.realConsumption !== null
+      ? formatNumber(appData.realConsumption,2) + " L/100 km"
+      : "--";
+
+  document.getElementById("statAnalyzedKm").textContent =
+    formatInteger(appData.totalKmForConsumption) + " km";
+
+  document.getElementById("statAnalyzedLiters").textContent =
+    formatNumber(appData.totalLitersForConsumption,2) + " L";
+
+  document.getElementById("statConfidence").textContent =
+    getConfidence(appData.totalKmForConsumption);
+
+  document.getElementById("statInitialConsumption").textContent =
+    formatNumber(appData.consumoInicial,2) + " L/100 km";
+
+  const kms = history
+    .map(item => Number(item.km))
+    .filter(km => Number.isFinite(km) && km >= 0);
+
+  const averageKm =
+    kms.length
+      ? kms.reduce((sum, value) => sum + value, 0) / kms.length
+      : null;
+
+  document.getElementById("statAverageKm").textContent =
+    averageKm !== null
+      ? formatNumber(averageKm,1) + " km"
+      : "--";
+
+  const prices = history
+    .map(item => Number(item.price))
+    .filter(price =>
+      Number.isFinite(price) &&
+      price >= 0
+    );
+
+  const averagePrice =
+    prices.length
+      ? prices.reduce((sum,value) => sum + value,0) / prices.length
+      : null;
+
+  document.getElementById("statAveragePrice").textContent =
+    averagePrice !== null
+      ? formatNumber(averagePrice,3) + " €/L"
+      : "--";
+
+  const costPairs = history.filter(item =>
+    Number.isFinite(item.cost) &&
+    item.cost >= 0 &&
+    Number.isFinite(item.km) &&
+    item.km > 0
+  );
+
+  const totalCost =
+    costPairs.reduce(
+      (sum,item) => sum + item.cost,
+      0
+    );
+
+  const totalKmForCost =
+    costPairs.reduce(
+      (sum,item) => sum + item.km,
+      0
+    );
+
+  const cost100 =
+    totalKmForCost > 0
+      ? totalCost / totalKmForCost * 100
+      : null;
+
+  document.getElementById("statCost100").textContent =
+    cost100 !== null
+      ? formatNumber(cost100,2) + " €"
+      : "--";
+
+  document.getElementById("statCycles").textContent =
+    validCycles.length;
+
+  const list = document.getElementById("historyList");
+
+  if(!history.length){
+    list.innerHTML =
+      '<div class="card history-empty">' +
+      'Todavía no hay repostajes registrados.' +
+      '</div>';
+    return;
+  }
+
+  list.innerHTML = history
+    .slice()
+    .reverse()
+    .map(renderHistoryItem)
+    .join("");
+}
+
+function renderHistoryItem(item){
+  const date = formatDate(item.date);
+
+  let badgeText = "Repostaje antiguo";
+  let badgeClass = "legacy";
+
+  if(item.type === "full"){
+    badgeText = "Depósito lleno";
+    badgeClass = "full";
+  }else if(item.type === "partial"){
+    badgeText = "Parcial";
+    badgeClass = "partial";
+  }
+
+  let cycleText = "";
+
+  if(
+    item.type === "full" &&
+    Number.isFinite(item.consumption) &&
+    item.consumption > 0
+  ){
+    cycleText =
+      '<div class="history-cycle">' +
+      'Consumo del ciclo: <strong>' +
+      formatNumber(item.consumption,2) +
+      ' L/100 km</strong>' +
+      ' · ' +
+      formatInteger(item.cycleKm) +
+      ' km' +
+      ' · ' +
+      formatNumber(item.cycleLiters,2) +
+      ' L' +
+      '</div>';
+  }else if(item.type === "partial"){
+    cycleText =
+      '<div class="history-cycle">' +
+      'Consumo del ciclo: <strong>No calculable</strong>' +
+      '</div>';
+  }else{
+    cycleText =
+      '<div class="history-cycle">' +
+      'Consumo del ciclo: <strong>No disponible</strong>' +
+      '</div>';
+  }
+
+  const price =
+    Number.isFinite(item.price)
+      ? formatNumber(item.price,3) + " €/L"
+      : "--";
+
+  const cost =
+    Number.isFinite(item.cost)
+      ? formatNumber(item.cost,2) + " €"
+      : "--";
+
+  return `
+    <div class="history-item">
+      <div class="history-top">
+        <div class="history-date">${escapeHtml(date)}</div>
+        <div class="badge ${badgeClass}">${badgeText}</div>
+      </div>
+
+      <div class="history-main">
+        <div class="history-cell">
+          <span>Litros repostados</span>
+          <strong>${formatNumber(item.liters,2)} L</strong>
+        </div>
+
+        <div class="history-cell">
+          <span>Km desde repostaje</span>
+          <strong>${formatNumber(item.km,1)} km</strong>
+        </div>
+
+        <div class="history-cell">
+          <span>Precio/L</span>
+          <strong>${price}</strong>
+        </div>
+
+        <div class="history-cell">
+          <span>Coste</span>
+          <strong>${cost}</strong>
+        </div>
+      </div>
+
+      ${cycleText}
+    </div>
+  `;
+}
+
+function renderSettings(){
+  const bikeInput = document.getElementById("bikeNameInput");
+  const capacityInput = document.getElementById("capacityInput");
+  const consumptionInput = document.getElementById("consumptionInput");
+  const reserveInput = document.getElementById("reserveInput");
+  const fuelInput = document.getElementById("fuelInput");
+
+  if(document.activeElement !== bikeInput){
+    bikeInput.value = appData.bikeName;
+  }
+
+  if(document.activeElement !== capacityInput){
+    capacityInput.value =
+      formatInputValue(appData.capacity);
+  }
+
+  if(document.activeElement !== consumptionInput){
+    consumptionInput.value =
+      formatInputValue(appData.consumoInicial);
+  }
+
+  if(document.activeElement !== reserveInput){
+    reserveInput.value =
+      formatInputValue(appData.reserve);
+  }
+
+  if(document.activeElement !== fuelInput){
+    fuelInput.value =
+      formatInputValue(appData.fuel);
+  }
+
+  const toggle = document.getElementById("reserveToggle");
+  toggle.classList.toggle("on", appData.reserveEnabled);
+  toggle.setAttribute(
+    "aria-pressed",
+    String(appData.reserveEnabled)
+  );
+
+  const learnedValue = document.getElementById("learnedValue");
+  const learnedMeta = document.getElementById("learnedMeta");
+
+  if(
+    appData.realConsumption !== null &&
+    appData.totalKmForConsumption > 0
+  ){
+    learnedValue.textContent =
+      formatNumber(appData.realConsumption,2) +
+      " L/100 km";
+
+    learnedMeta.textContent =
+      "Aprendido con " +
+      formatInteger(appData.totalKmForConsumption) +
+      " km reales y " +
+      formatNumber(appData.totalLitersForConsumption,2) +
+      " L.";
+  }else{
+    learnedValue.textContent =
+      "Sin datos reales";
+
+    learnedMeta.textContent =
+      "Completa un ciclo entre repostajes para comenzar a aprender.";
+  }
+
+  document.getElementById("settingsLearnedKm").textContent =
+    formatInteger(appData.totalKmForConsumption) + " km";
+
+  document.getElementById("settingsLearnedLiters").textContent =
+    formatNumber(appData.totalLitersForConsumption,2) + " L";
+}
+
+function render(){
+  renderHome();
+  renderHistory();
+  renderSettings();
+}
+
+function getConfidence(km){
+  const value = nonNegativeNumber(km,0);
+
+  if(value < 300){
+    return "Datos iniciales";
+  }
+
+  if(value < 1000){
+    return "Confianza baja";
+  }
+
+  if(value < 2000){
+    return "Confianza media";
+  }
+
+  return "Confianza alta";
+}
+
+function formatInputValue(value){
+  const n = finiteNumber(value,0);
+  return String(Number(n.toFixed(4)));
+}
+
+function formatDate(dateString){
+  const date = new Date(dateString);
+
+  if(Number.isNaN(date.getTime())){
+    return "Fecha desconocida";
+  }
+
+  return date.toLocaleString("es-ES",{
+    day:"2-digit",
+    month:"2-digit",
+    year:"numeric",
+    hour:"2-digit",
+    minute:"2-digit"
+  });
+}
+
+function escapeHtml(value){
+  return String(value)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+function showToast(message){
+  const toast = document.getElementById("toast");
+
+  toast.textContent = message;
+  toast.classList.add("show");
+
+  clearTimeout(showToast.timer);
+
+  showToast.timer = setTimeout(() => {
+    toast.classList.remove("show");
+  },2200);
+}
+
+function openRefuelModal(){
+  document.getElementById("refuelModal").classList.add("show");
+  document.getElementById("refuelLiters").value = "";
+  document.getElementById("refuelPrice").value = "";
+  document.getElementById("refuelCost").value = "";
+  setRefuelType("full");
+
+  setTimeout(() => {
+    document.getElementById("refuelLiters").focus();
+  },100);
+}
+
+function closeRefuelModal(){
+  document.getElementById("refuelModal").classList.remove("show");
+}
+
+function setRefuelType(type){
+  refuelType =
+    type === "partial"
+      ? "partial"
+      : "full";
+
+  document
+    .getElementById("fullTypeBtn")
+    .classList.toggle(
+      "selected",
+      refuelType === "full"
+    );
+
+  document
+    .getElementById("partialTypeBtn")
+    .classList.toggle(
+      "selected",
+      refuelType === "partial"
+    );
+
+  document.getElementById("refuelHelp").textContent =
+    refuelType === "full"
+      ? "Al llenar el depósito, MotoRange cerrará el ciclo anterior y calculará el consumo real únicamente si existen kilómetros y litros válidos."
+      : "El repostaje parcial acumula los kilómetros y litros del ciclo actual. El consumo real solo se calcula cuando posteriormente registras un depósito lleno.";
+}
+
+function parseOptionalInput(id){
+  const raw =
+    document.getElementById(id).value.trim();
+
+  if(raw === ""){
+    return null;
+  }
+
+  const value =
+    Number(raw.replace(",","."));
+
+  return Number.isFinite(value)
+    ? value
+    : null;
+}
+
+function saveRefuel(){
+  const litersRaw =
+    document.getElementById("refuelLiters").value.trim();
+
+  const liters =
+    Number(litersRaw.replace(",","."));
+
+  if(!Number.isFinite(liters) || liters <= 0){
+    showToast("Introduce una cantidad de litros válida.");
+    return;
+  }
+
+  const price = parseOptionalInput("refuelPrice");
+  const cost = parseOptionalInput("refuelCost");
+
+  if(price !== null && price < 0){
+    showToast("El precio no puede ser negativo.");
+    return;
+  }
+
+  if(cost !== null && cost < 0){
+    showToast("El coste no puede ser negativo.");
+    return;
+  }
+
+  const calcBefore = calculate();
+
+  // Critical rule:
+  // Capture current segment exactly once.
+  const segmentKm =
+    nonNegativeNumber(appData.kmSinceRefuel,0);
+
+  if(refuelType === "partial"){
+    const resultingFuel =
+      calcBefore.remaining + liters;
+
+    if(resultingFuel > appData.capacity + 0.0001){
+      const proceed = confirm(
+        "Este repostaje dejaría aproximadamente " +
+        formatNumber(resultingFuel,2) +
+        " L disponibles, por encima de la capacidad configurada de " +
+        formatNumber(appData.capacity,2) +
+        " L.\n\n¿Quieres guardarlo igualmente?"
+      );
+
+      if(!proceed){
+        return;
+      }
+    }
+
+    // Add the segment exactly once.
+    appData.kmSinceFullTank =
+      nonNegativeNumber(
+        appData.kmSinceFullTank,
+        0
+      ) + segmentKm;
+
+    appData.litersSinceFullTank =
+      nonNegativeNumber(
+        appData.litersSinceFullTank,
+        0
+      ) + liters;
+
+    // Calculate remaining before adding the new fuel,
+    // then establish the new fuel baseline.
+    appData.fuel =
+      Math.max(
+        0,
+        calcBefore.remaining + liters
+      );
+
+    appData.kmSinceRefuel = 0;
+
+    appData.history.push({
+      date:new Date().toISOString(),
+      type:"partial",
+      liters,
+      km:segmentKm,
+      cycleKm:null,
+      cycleLiters:null,
+      consumption:null,
+      price,
+      cost
+    });
+
+    saveData();
+    closeRefuelModal();
+    render();
+
+    showToast("Repostaje parcial registrado.");
+    return;
+  }
+
+  // FULL REFUEL
+  if(liters > appData.capacity){
+    const proceed = confirm(
+      "Has introducido " +
+      formatNumber(liters,2) +
+      " L, por encima de la capacidad configurada de " +
+      formatNumber(appData.capacity,2) +
+      " L.\n\n¿Quieres registrarlo igualmente?"
+    );
+
+    if(!proceed){
+      return;
+    }
+  }
+
+  // Capture the cycle BEFORE resetting anything.
+  const cycleKm =
+    nonNegativeNumber(
+      appData.kmSinceFullTank,
+      0
+    ) + segmentKm;
+
+  const cycleLiters =
+    nonNegativeNumber(
+      appData.litersSinceFullTank,
+      0
+    ) + liters;
+
+  let cycleConsumption = null;
+
+  // Only a genuinely valid complete cycle can teach consumption.
+  if(cycleKm > 0 && cycleLiters > 0){
+    cycleConsumption =
+      cycleLiters / cycleKm * 100;
+
+    if(
+      Number.isFinite(cycleConsumption) &&
+      cycleConsumption > 0
+    ){
+      appData.totalKmForConsumption =
+        nonNegativeNumber(
+          appData.totalKmForConsumption,
+          0
+        ) + cycleKm;
+
+      appData.totalLitersForConsumption =
+        nonNegativeNumber(
+          appData.totalLitersForConsumption,
+          0
+        ) + cycleLiters;
+
+      if(
+        appData.totalKmForConsumption > 0 &&
+        appData.totalLitersForConsumption > 0
+      ){
+        appData.realConsumption =
+          appData.totalLitersForConsumption /
+          appData.totalKmForConsumption *
+          100;
+      }else{
+        appData.realConsumption = null;
+      }
+    }else{
+      cycleConsumption = null;
+    }
+  }
+
+  appData.history.push({
+    date:new Date().toISOString(),
+    type:"full",
+    liters,
+    km:segmentKm,
+    cycleKm:
+      cycleConsumption !== null
+        ? cycleKm
+        : null,
+    cycleLiters:
+      cycleConsumption !== null
+        ? cycleLiters
+        : null,
+    consumption:cycleConsumption,
+    price,
+    cost
+  });
+
+  // Establish new full-tank baseline.
+  appData.fuel =
+    positiveNumber(
+      appData.capacity,
+      DEFAULT_DATA.capacity
+    );
+
+  appData.kmSinceRefuel = 0;
+  appData.kmSinceFullTank = 0;
+  appData.litersSinceFullTank = 0;
+
+  saveData();
+  closeRefuelModal();
+  render();
+
+  if(cycleConsumption !== null){
+    showToast(
+      "Ciclo completo: " +
+      formatNumber(cycleConsumption,2) +
+      " L/100 km."
+    );
+  }else{
+    showToast(
+      "Depósito lleno registrado. Aún no hay un ciclo válido para aprender."
+    );
+  }
+}
+
+function clearHistory(){
+  const confirmed = confirm(
+    "¿Borrar todo el historial?\n\n" +
+    "El consumo real aprendido, los kilómetros y litros analizados, " +
+    "la configuración y el estado actual de la moto NO se borrarán."
+  );
+
+  if(!confirmed){
+    return;
+  }
+
+  // Intentionally ONLY clear history.
+  appData.history = [];
+
+  saveData();
+  render();
+
+  showToast("Historial borrado. Datos aprendidos conservados.");
+}
+
+function navigate(page){
+  const validPages = ["home","history","settings"];
+
+  if(!validPages.includes(page)){
+    page = "home";
+  }
+
+  currentPage = page;
+
+  document
+    .querySelectorAll(".page")
+    .forEach(element => {
+      element.classList.toggle(
+        "active",
+        element.id === "page-" + page
+      );
+    });
+
+  document
+    .querySelectorAll(".nav-btn")
+    .forEach(button => {
+      button.classList.toggle(
+        "active",
+        button.dataset.page === page
+      );
+    });
+
+  if(page === "home"){
+    renderHome();
+  }else if(page === "history"){
+    renderHistory();
+  }else if(page === "settings"){
+    renderSettings();
+  }
+
+  window.scrollTo({
+    top:0,
+    behavior:"instant"
+  });
+}
+
+function setupEvents(){
+  document
+    .querySelectorAll(".nav-btn")
+    .forEach(button => {
+      button.addEventListener("click",() => {
+        navigate(button.dataset.page);
+      });
+    });
+
+  document
+    .getElementById("openRefuelBtn")
+    .addEventListener("click",openRefuelModal);
+
+  document
+    .getElementById("closeRefuelBtn")
+    .addEventListener("click",closeRefuelModal);
+
+  document
+    .getElementById("refuelModal")
+    .addEventListener("click",event => {
+      if(event.target.id === "refuelModal"){
+        closeRefuelModal();
+      }
+    });
+
+  document
+    .getElementById("fullTypeBtn")
+    .addEventListener("click",() => {
+      setRefuelType("full");
+    });
+
+  document
+    .getElementById("partialTypeBtn")
+    .addEventListener("click",() => {
+      setRefuelType("partial");
+    });
+
+  document
+    .getElementById("saveRefuelBtn")
+    .addEventListener("click",saveRefuel);
+
+  document
+    .getElementById("clearHistoryBtn")
+    .addEventListener("click",clearHistory);
+
+  // KM is current state, NEVER an accumulator.
+  document
+    .getElementById("kmInput")
+    .addEventListener("input",event => {
+      const raw = event.target.value.trim();
+
+      if(raw === ""){
+        appData.kmSinceRefuel = 0;
+        saveData();
+        renderHome();
+        return;
+      }
+
+      const value =
+        Number(raw.replace(",","."));
+
+      if(
+        Number.isFinite(value) &&
+        value >= 0
+      ){
+        appData.kmSinceRefuel = value;
+
+        // Absolutely no changes to:
+        // kmSinceFullTank
+        // litersSinceFullTank
+        // totalKmForConsumption
+        // totalLitersForConsumption
+        // realConsumption
+
+        saveData();
+        renderHome();
+      }
+    });
+
+  document
+    .getElementById("bikeNameInput")
+    .addEventListener("input",event => {
+      appData.bikeName =
+        event.target.value.trim() ||
+        DEFAULT_DATA.bikeName;
+
+      saveData();
+      document.getElementById("headerBike").textContent =
+        appData.bikeName;
+    });
+
+  document
+    .getElementById("capacityInput")
+    .addEventListener("input",event => {
+      const value =
+        Number(event.target.value.replace(",","."));
+
+      if(Number.isFinite(value) && value > 0){
+        appData.capacity = value;
+
+        // Capacity is configuration only.
+        // It does not alter learned consumption.
+        saveData();
+        renderHome();
+      }
+    });
+
+  document
+    .getElementById("consumptionInput")
+    .addEventListener("input",event => {
+      const value =
+        Number(event.target.value.replace(",","."));
+
+      if(Number.isFinite(value) && value > 0){
+        appData.consumoInicial = value;
+
+        // Initial consumption is only the fallback.
+        // It NEVER overwrites learned real consumption.
+        saveData();
+        renderHome();
+        renderHistory();
+        renderSettings();
+      }
+    });
+
+  document
+    .getElementById("reserveInput")
+    .addEventListener("input",event => {
+      const value =
+        Number(event.target.value.replace(",","."));
+
+      if(Number.isFinite(value) && value >= 0){
+        appData.reserve = value;
+        saveData();
+        renderHome();
+      }
+    });
+
+  document
+    .getElementById("fuelInput")
+    .addEventListener("input",event => {
+      const value =
+        Number(event.target.value.replace(",","."));
+
+      if(Number.isFinite(value) && value >= 0){
+        appData.fuel = value;
+        saveData();
+        renderHome();
+      }
+    });
+
+  document
+    .getElementById("reserveToggle")
+    .addEventListener("click",() => {
+      appData.reserveEnabled =
+        !appData.reserveEnabled;
+
+      saveData();
+      renderHome();
+      renderSettings();
+    });
+
+  document
+    .getElementById("refuelLiters")
+    .addEventListener("keydown",event => {
+      if(event.key === "Enter"){
+        saveRefuel();
+      }
+    });
+
+  document.addEventListener("keydown",event => {
+    if(event.key === "Escape"){
+      closeRefuelModal();
+    }
+  });
+
+  // Keep state safe if browser restores an invalid value.
+  window.addEventListener("pagehide",saveData);
+  window.addEventListener("beforeunload",saveData);
+}
+
+setupEvents();
+render();
+</script>
+
+</body>
+</html>
