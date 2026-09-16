@@ -2465,6 +2465,1894 @@ function setupEvents(){
 
 setupEvents();
 render();
+<!-- =========================
+     MOTOrange 2.0 - MODO RUTA
+     ========================= -->
+<script>
+(function(){
+
+"use strict";
+
+/* ---------- ESTILOS ---------- */
+
+const routeStyles = document.createElement("style");
+routeStyles.textContent = `
+.route-live{
+  text-align:center;
+  padding:8px 0 18px;
+}
+.route-distance{
+  font-size:58px;
+  line-height:1;
+  font-weight:850;
+  color:var(--light-ochre);
+  letter-spacing:-3px;
+  font-variant-numeric:tabular-nums;
+}
+.route-unit{
+  color:var(--muted);
+  font-size:12px;
+  margin-top:7px;
+}
+.route-status{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  margin:12px 0 4px;
+  padding:6px 10px;
+  border-radius:99px;
+  background:rgba(184,138,59,.10);
+  border:1px solid rgba(184,138,59,.25);
+  color:var(--light-ochre);
+  font-size:10px;
+  font-weight:800;
+  text-transform:uppercase;
+}
+.route-dot{
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:#C28A3E;
+}
+.route-dot.live{
+  background:#66B66A;
+  box-shadow:0 0 0 4px rgba(102,182,106,.12);
+}
+.route-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:14px;
+}
+.route-stat{
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  border-radius:15px;
+  padding:12px;
+}
+.route-stat span{
+  display:block;
+  color:var(--muted);
+  font-size:9px;
+  text-transform:uppercase;
+  letter-spacing:.7px;
+  margin-bottom:5px;
+}
+.route-stat strong{
+  font-size:16px;
+  font-variant-numeric:tabular-nums;
+}
+.route-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:9px;
+  margin-top:12px;
+}
+.route-actions .full{
+  grid-column:1/-1;
+}
+.route-manual{
+  margin-top:12px;
+}
+.route-gps-note{
+  color:var(--muted);
+  font-size:10px;
+  line-height:1.45;
+  margin-top:8px;
+}
+.route-history-item{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:19px;
+  padding:15px;
+  margin-bottom:9px;
+}
+.route-history-title{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:center;
+}
+.route-history-title strong{
+  font-size:14px;
+}
+.route-history-date{
+  color:var(--muted);
+  font-size:10px;
+}
+.route-history-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:12px;
+}
+.route-profile{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:12px;
+  border-radius:15px;
+  background:var(--surface-2);
+  border:1px solid var(--border);
+}
+.route-profile strong{
+  display:block;
+  font-size:13px;
+}
+.route-profile span{
+  display:block;
+  color:var(--muted);
+  font-size:10px;
+  margin-top:3px;
+}
+.profile-list{
+  display:grid;
+  gap:8px;
+}
+.profile-active{
+  border-color:var(--bronze);
+  background:rgba(184,138,59,.08);
+}
+.route-small-btn{
+  border:1px solid var(--border);
+  background:var(--surface);
+  color:var(--cream);
+  border-radius:11px;
+  min-height:38px;
+  padding:7px 10px;
+  font-size:10px;
+  font-weight:800;
+}
+.route-small-btn.active{
+  background:var(--ochre);
+  color:#080706;
+  border-color:var(--ochre);
+}
+`;
+
+document.head.appendChild(routeStyles);
+
+
+/* ---------- DATOS MULTIMOTO ---------- */
+
+const PROFILE_KEY = "motorange_profiles_v1";
+
+let profileStore = {
+  activeId:null,
+  profiles:{}
+};
+
+try{
+  const raw = localStorage.getItem(PROFILE_KEY);
+
+  if(raw){
+    const parsed = JSON.parse(raw);
+
+    if(
+      parsed &&
+      typeof parsed === "object" &&
+      parsed.profiles &&
+      typeof parsed.profiles === "object"
+    ){
+      profileStore = parsed;
+    }
+  }
+}catch(e){}
+
+
+/* Crear el primer perfil usando TODOS los datos actuales */
+if(!profileStore.activeId || Object.keys(profileStore.profiles).length === 0){
+
+  const firstId = "bike_" + Date.now();
+
+  profileStore = {
+    activeId:firstId,
+    profiles:{
+      [firstId]:JSON.parse(JSON.stringify(appData))
+    }
+  };
+
+  localStorage.setItem(
+    PROFILE_KEY,
+    JSON.stringify(profileStore)
+  );
+}else{
+
+  const active =
+    profileStore.profiles[profileStore.activeId];
+
+  if(active){
+    appData = normalizeData(active);
+  }
+}
+
+
+/* ---------- GUARDADO MULTIMOTO ---------- */
+
+const originalSaveData = saveData;
+
+saveData = function(){
+
+  try{
+
+    if(!profileStore.activeId){
+      profileStore.activeId =
+        "bike_" + Date.now();
+    }
+
+    profileStore.profiles[profileStore.activeId] =
+      JSON.parse(JSON.stringify(appData));
+
+    localStorage.setItem(
+      PROFILE_KEY,
+      JSON.stringify(profileStore)
+    );
+
+  }catch(e){}
+
+  try{
+    originalSaveData();
+  }catch(e){}
+};
+
+
+/* ---------- UTILIDADES ---------- */
+
+function routeFormatTime(seconds){
+
+  seconds = Math.max(
+    0,
+    Math.floor(Number(seconds)||0)
+  );
+
+  const h =
+    Math.floor(seconds/3600);
+
+  const m =
+    Math.floor((seconds%3600)/60);
+
+  const s =
+    seconds%60;
+
+  return [
+    String(h).padStart(2,"0"),
+    String(m).padStart(2,"0"),
+    String(s).padStart(2,"0")
+  ].join(":");
+}
+
+
+function routeDistance(a,b){
+
+  const R = 6371;
+
+  const lat1 =
+    a.latitude * Math.PI / 180;
+
+  const lat2 =
+    b.latitude * Math.PI / 180;
+
+  const dLat =
+    (b.latitude-a.latitude) *
+    Math.PI / 180;
+
+  const dLon =
+    (b.longitude-a.longitude) *
+    Math.PI / 180;
+
+  const x =
+    Math.sin(dLat/2)**2 +
+    Math.cos(lat1) *
+    Math.cos(lat2) *
+    Math.sin(dLon/2)**2;
+
+  return R * 2 *
+    Math.atan2(
+      Math.sqrt(x),
+      Math.sqrt(1-x)
+    );
+}
+
+
+/* ---------- ESTADO DE RUTA ---------- */
+
+let routeState = {
+  active:false,
+  paused:false,
+  startedAt:null,
+  elapsedBeforePause:0,
+  pauseStartedAt:null,
+  lastPosition:null,
+  gpsKm:0,
+  manualKm:null,
+  watchId:null,
+  refuels:[],
+  gpsAccuracy:[],
+  lastUpdate:null
+};
+
+
+function routeSaveState(){
+
+  appData.routeState = {
+    active:routeState.active,
+    paused:routeState.paused,
+    startedAt:routeState.startedAt,
+    elapsedBeforePause:routeState.elapsedBeforePause,
+    pauseStartedAt:routeState.pauseStartedAt,
+    gpsKm:routeState.gpsKm,
+    manualKm:routeState.manualKm,
+    refuels:routeState.refuels,
+    lastUpdate:routeState.lastUpdate
+  };
+
+  saveData();
+}
+
+
+function routeLoadState(){
+
+  if(
+    !appData.routeState ||
+    typeof appData.routeState !== "object"
+  ){
+    return;
+  }
+
+  const r = appData.routeState;
+
+  routeState = {
+    ...routeState,
+    ...r,
+    watchId:null,
+    lastPosition:null,
+    gpsAccuracy:[]
+  };
+
+  if(!routeState.active){
+    routeState.active = false;
+  }
+}
+
+
+/* ---------- CREAR PÁGINA RUTA ---------- */
+
+const main = document.querySelector("main");
+
+const routePage = document.createElement("section");
+
+routePage.className = "page";
+
+routePage.id = "page-route";
+
+routePage.innerHTML = `
+<div class="page-heading">
+  <h1>Modo Ruta</h1>
+  <p>Registra kilómetros, repostajes y consumo real.</p>
+</div>
+
+<div class="card">
+
+  <div class="route-live">
+
+    <div class="route-status">
+      <span class="route-dot" id="routeDot"></span>
+      <span id="routeStatusText">Ruta detenida</span>
+    </div>
+
+    <div class="route-distance" id="routeDistance">
+      0,0
+    </div>
+
+    <div class="route-unit">
+      km de ruta
+    </div>
+
+    <div class="route-grid">
+
+      <div class="route-stat">
+        <span>GPS</span>
+        <strong id="routeGpsKm">0,0 km</strong>
+      </div>
+
+      <div class="route-stat">
+        <span>Utilizados</span>
+        <strong id="routeUsedKm">0,0 km</strong>
+      </div>
+
+      <div class="route-stat">
+        <span>Tiempo</span>
+        <strong id="routeTime">00:00:00</strong>
+      </div>
+
+      <div class="route-stat">
+        <span>Repostajes</span>
+        <strong id="routeRefuelCount">0</strong>
+      </div>
+
+    </div>
+
+  </div>
+
+  <div class="route-actions">
+
+    <button
+      class="button primary full"
+      id="routeStartBtn"
+      type="button"
+    >
+      ▶ INICIAR RUTA
+    </button>
+
+    <button
+      class="button secondary"
+      id="routePauseBtn"
+      type="button"
+    >
+      ⏸ PAUSAR
+    </button>
+
+    <button
+      class="button secondary"
+      id="routeFinishBtn"
+      type="button"
+    >
+      🏁 FINALIZAR
+    </button>
+
+  </div>
+
+</div>
+
+<div class="card">
+
+  <div class="card-title">
+    Distancia del cuentakilómetros
+  </div>
+
+  <div class="field route-manual">
+
+    <label for="routeManualKm">
+      KM MANUALES · OPCIONAL
+    </label>
+
+    <input
+      class="input"
+      id="routeManualKm"
+      type="number"
+      min="0"
+      step="0.1"
+      inputmode="decimal"
+      placeholder="Ej. 254,2"
+    >
+
+  </div>
+
+  <div class="route-gps-note">
+    El GPS se utiliza automáticamente. Si introduces los kilómetros
+    que marca el cuentakilómetros de la moto, ese valor tendrá prioridad
+    para todos los cálculos de la ruta.
+  </div>
+
+</div>
+
+<div class="card">
+
+  <div class="card-title">
+    Repostajes de la ruta
+  </div>
+
+  <button
+    class="button secondary"
+    id="routeRefuelBtn"
+    type="button"
+  >
+    ⛽ REGISTRAR REPOSTAJE
+  </button>
+
+  <div id="routeRefuelList"></div>
+
+</div>
+
+<div class="card">
+
+  <div class="card-title">
+    Historial de rutas
+  </div>
+
+  <div id="routeHistoryList"></div>
+
+</div>
+`;
+
+main.appendChild(routePage);
+
+
+/* ---------- NAVEGACIÓN ---------- */
+
+const nav = document.querySelector(".bottom-nav");
+
+const routeNav = document.createElement("button");
+
+routeNav.className = "nav-btn";
+
+routeNav.dataset.page = "route";
+
+routeNav.innerHTML = `
+<span class="nav-icon">🏍️</span>
+Ruta
+`;
+
+nav.insertBefore(
+  routeNav,
+  nav.lastElementChild
+);
+
+
+/* ---------- PERFILES EN AJUSTES ---------- */
+
+const settingsPage =
+  document.getElementById("page-settings");
+
+const profileCard =
+  document.createElement("div");
+
+profileCard.className = "card";
+
+profileCard.innerHTML = `
+<div class="card-title">
+  Mis motos
+</div>
+
+<div
+  class="profile-list"
+  id="profileList"
+></div>
+
+<button
+  class="button secondary"
+  id="addBikeBtn"
+  type="button"
+  style="margin-top:10px"
+>
+  + AÑADIR MOTO
+</button>
+`;
+
+settingsPage.insertBefore(
+  profileCard,
+  settingsPage.firstElementChild
+);
+
+
+/* ---------- PERFIL ---------- */
+
+function renderProfiles(){
+
+  const list =
+    document.getElementById("profileList");
+
+  if(!list){
+    return;
+  }
+
+  list.innerHTML =
+    Object.entries(profileStore.profiles)
+    .map(([id,bike]) => {
+
+      const active =
+        id === profileStore.activeId;
+
+      return `
+      <button
+        type="button"
+        class="route-profile ${active ? "profile-active":""}"
+        data-profile-id="${escapeHtml(id)}"
+      >
+        <span style="text-align:left">
+          <strong>
+            ${escapeHtml(
+              bike.bikeName || "Moto"
+            )}
+          </strong>
+
+          <span>
+            ${formatNumber(
+              bike.capacity || 0,
+              1
+            )} L · Inicial
+            ${formatNumber(
+              bike.consumoInicial || 0,
+              2
+            )} L/100 km
+          </span>
+        </span>
+
+        <span>
+          ${active ? "✓" : "Seleccionar"}
+        </span>
+      </button>
+      `;
+
+    })
+    .join("");
+
+  list
+    .querySelectorAll("[data-profile-id]")
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => switchBike(
+          button.dataset.profileId
+        )
+      );
+
+    });
+}
+
+
+function switchBike(id){
+
+  if(!profileStore.profiles[id]){
+    return;
+  }
+
+  if(
+    routeState.active
+  ){
+    showToast(
+      "Finaliza la ruta antes de cambiar de moto."
+    );
+    return;
+  }
+
+  saveData();
+
+  profileStore.activeId = id;
+
+  appData =
+    normalizeData(
+      profileStore.profiles[id]
+    );
+
+  localStorage.setItem(
+    PROFILE_KEY,
+    JSON.stringify(profileStore)
+  );
+
+  routeLoadState();
+
+  render();
+
+  renderProfiles();
+
+  renderRoute();
+
+  showToast(
+    "Moto seleccionada: " +
+    appData.bikeName
+  );
+}
+
+
+document
+  .getElementById("addBikeBtn")
+  .addEventListener(
+    "click",
+    () => {
+
+      const name =
+        prompt(
+          "Nombre de la nueva moto:",
+          "Nueva moto"
+        );
+
+      if(!name || !name.trim()){
+        return;
+      }
+
+      const id =
+        "bike_" + Date.now();
+
+      const newBike =
+        normalizeData({
+          ...DEFAULT_DATA,
+          bikeName:name.trim()
+        });
+
+      profileStore.profiles[id] =
+        newBike;
+
+      profileStore.activeId = id;
+
+      appData = newBike;
+
+      localStorage.setItem(
+        PROFILE_KEY,
+        JSON.stringify(profileStore)
+      );
+
+      render();
+      renderProfiles();
+      renderRoute();
+
+      showToast(
+        "Nueva moto creada."
+      );
+
+    }
+  );
+
+
+/* ---------- GPS ---------- */
+
+function routeStartGPS(){
+
+  if(!navigator.geolocation){
+
+    showToast(
+      "Este dispositivo no permite usar GPS."
+    );
+
+    return;
+  }
+
+  routeState.lastPosition = null;
+
+  routeState.watchId =
+    navigator.geolocation.watchPosition(
+
+      position => {
+
+        if(
+          !routeState.active ||
+          routeState.paused
+        ){
+          return;
+        }
+
+        const coords =
+          position.coords;
+
+        const current = {
+          latitude:coords.latitude,
+          longitude:coords.longitude
+        };
+
+        if(
+          Number.isFinite(coords.accuracy)
+        ){
+          routeState.gpsAccuracy.push(
+            coords.accuracy
+          );
+
+          if(
+            routeState.gpsAccuracy.length > 10
+          ){
+            routeState.gpsAccuracy.shift();
+          }
+        }
+
+        if(routeState.lastPosition){
+
+          const segment =
+            routeDistance(
+              routeState.lastPosition,
+              current
+            );
+
+          /*
+           * Evitamos saltos GPS absurdos.
+           * Si un punto está a más de 1 km del anterior
+           * en una sola actualización, no lo sumamos.
+           */
+          if(
+            Number.isFinite(segment) &&
+            segment >= 0 &&
+            segment < 1
+          ){
+            routeState.gpsKm += segment;
+          }
+
+        }
+
+        routeState.lastPosition =
+          current;
+
+        routeState.lastUpdate =
+          new Date().toISOString();
+
+        routeSaveState();
+
+        renderRoute();
+
+      },
+
+      error => {
+
+        let message =
+          "No se ha podido obtener la posición GPS.";
+
+        if(error.code === 1){
+          message =
+            "Permiso de ubicación denegado.";
+        }
+
+        if(error.code === 2){
+          message =
+            "No se ha podido determinar la ubicación.";
+        }
+
+        if(error.code === 3){
+          message =
+            "El GPS ha tardado demasiado.";
+        }
+
+        showToast(message);
+
+      },
+
+      {
+        enableHighAccuracy:true,
+        maximumAge:2000,
+        timeout:10000
+      }
+
+    );
+}
+
+
+function routeStopGPS(){
+
+  if(
+    routeState.watchId !== null
+  ){
+
+    navigator.geolocation.clearWatch(
+      routeState.watchId
+    );
+
+    routeState.watchId = null;
+  }
+
+  routeState.lastPosition = null;
+}
+
+
+/* ---------- DISTANCIA UTILIZADA ---------- */
+
+function getRouteUsedKm(){
+
+  if(
+    Number.isFinite(routeState.manualKm) &&
+    routeState.manualKm >= 0
+  ){
+    return routeState.manualKm;
+  }
+
+  return Math.max(
+    0,
+    Number(routeState.gpsKm) || 0
+  );
+}
+
+
+/* ---------- TIEMPO ---------- */
+
+function routeElapsed(){
+
+  let seconds =
+    Number(
+      routeState.elapsedBeforePause
+    ) || 0;
+
+  if(
+    routeState.active &&
+    !routeState.paused &&
+    routeState.startedAt
+  ){
+
+    seconds +=
+      (
+        Date.now() -
+        routeState.startedAt
+      ) / 1000;
+
+  }
+
+  return Math.max(
+    0,
+    seconds
+  );
+}
+
+
+/* ---------- INICIAR ---------- */
+
+function startRoute(){
+
+  if(routeState.active){
+
+    showToast(
+      "Ya hay una ruta en curso."
+    );
+
+    return;
+  }
+
+  if(
+    !navigator.geolocation
+  ){
+
+    showToast(
+      "Tu navegador no dispone de geolocalización."
+    );
+
+    return;
+  }
+
+  routeState = {
+
+    active:true,
+
+    paused:false,
+
+    startedAt:Date.now(),
+
+    elapsedBeforePause:0,
+
+    pauseStartedAt:null,
+
+    lastPosition:null,
+
+    gpsKm:0,
+
+    manualKm:null,
+
+    watchId:null,
+
+    refuels:[],
+
+    gpsAccuracy:[],
+
+    lastUpdate:null
+
+  };
+
+  routeSaveState();
+
+  routeStartGPS();
+
+  renderRoute();
+
+  showToast(
+    "Ruta iniciada. GPS activado."
+  );
+}
+
+
+/* ---------- PAUSAR ---------- */
+
+function togglePauseRoute(){
+
+  if(!routeState.active){
+
+    showToast(
+      "No hay una ruta activa."
+    );
+
+    return;
+  }
+
+  if(routeState.paused){
+
+    if(
+      routeState.pauseStartedAt
+    ){
+
+      routeState.elapsedBeforePause +=
+        (
+          routeState.pauseStartedAt
+          ? Date.now() -
+            routeState.pauseStartedAt
+          : 0
+        ) / 1000;
+
+    }
+
+    routeState.paused = false;
+
+    routeState.startedAt =
+      Date.now();
+
+    routeState.pauseStartedAt =
+      null;
+
+    routeState.lastPosition =
+      null;
+
+    routeStartGPS();
+
+    showToast(
+      "Ruta reanudada."
+    );
+
+  }else{
+
+    routeState.elapsedBeforePause =
+      routeElapsed();
+
+    routeState.paused = true;
+
+    routeState.pauseStartedAt =
+      Date.now();
+
+    routeStopGPS();
+
+    showToast(
+      "Ruta pausada."
+    );
+  }
+
+  routeSaveState();
+
+  renderRoute();
+}
+
+
+/* ---------- FINALIZAR ---------- */
+
+function finishRoute(){
+
+  if(!routeState.active){
+
+    showToast(
+      "No hay una ruta activa."
+    );
+
+    return;
+  }
+
+  const usedKm =
+    getRouteUsedKm();
+
+  if(usedKm <= 0){
+
+    const proceed =
+      confirm(
+        "La ruta tiene 0 km.\n\n" +
+        "¿Quieres finalizarla igualmente?"
+      );
+
+    if(!proceed){
+      return;
+    }
+  }
+
+  const route = {
+
+    id:"route_" + Date.now(),
+
+    date:new Date().toISOString(),
+
+    bikeId:
+      profileStore.activeId,
+
+    bikeName:
+      appData.bikeName,
+
+    gpsKm:
+      Number(routeState.gpsKm)||0,
+
+    manualKm:
+      Number.isFinite(routeState.manualKm)
+        ? routeState.manualKm
+        : null,
+
+    usedKm,
+
+    elapsedSeconds:
+      routeElapsed(),
+
+    refuels:
+      Array.isArray(routeState.refuels)
+        ? routeState.refuels
+        : [],
+
+    averageAccuracy:
+      routeState.gpsAccuracy.length
+        ? routeState.gpsAccuracy.reduce(
+            (a,b)=>a+b,
+            0
+          ) /
+          routeState.gpsAccuracy.length
+        : null
+  };
+
+  /*
+   * Guardamos la ruta antes de limpiar el estado.
+   */
+  if(!Array.isArray(appData.routes)){
+    appData.routes = [];
+  }
+
+  appData.routes.push(route);
+
+  routeStopGPS();
+
+  routeState = {
+    active:false,
+    paused:false,
+    startedAt:null,
+    elapsedBeforePause:0,
+    pauseStartedAt:null,
+    lastPosition:null,
+    gpsKm:0,
+    manualKm:null,
+    watchId:null,
+    refuels:[],
+    gpsAccuracy:[],
+    lastUpdate:null
+  };
+
+  appData.routeState =
+    routeState;
+
+  saveData();
+
+  render();
+
+  renderRoute();
+
+  showToast(
+    "Ruta guardada: " +
+    formatNumber(
+      usedKm,
+      1
+    ) +
+    " km."
+  );
+}
+
+
+/* ---------- REPOSTAJE DURANTE RUTA ---------- */
+
+/*
+ * Usamos el modal de repostaje existente.
+ * Después de guardar, detectamos el nuevo registro
+ * y lo asociamos a la ruta activa.
+ */
+
+const originalSaveRefuel =
+  saveRefuel;
+
+const refuelButton =
+  document.getElementById(
+    "saveRefuelBtn"
+  );
+
+refuelButton.addEventListener(
+  "click",
+  () => {
+
+    if(!routeState.active){
+      return;
+    }
+
+    const previousLength =
+      Array.isArray(appData.history)
+        ? appData.history.length
+        : 0;
+
+    setTimeout(() => {
+
+      if(
+        !routeState.active
+      ){
+        return;
+      }
+
+      const history =
+        Array.isArray(appData.history)
+          ? appData.history
+          : [];
+
+      if(
+        history.length >
+        previousLength
+      ){
+
+        const entry =
+          history[history.length-1];
+
+        routeState.refuels.push({
+
+          date:entry.date,
+
+          liters:
+            Number(entry.liters)||0,
+
+          price:
+            Number.isFinite(entry.price)
+              ? entry.price
+              : null,
+
+          cost:
+            Number.isFinite(entry.cost)
+              ? entry.cost
+              : null,
+
+          routeKm:
+            getRouteUsedKm()
+
+        });
+
+        routeSaveState();
+
+        renderRoute();
+
+      }
+
+    },100);
+
+  },
+  true
+);
+
+
+/* ---------- RENDER RUTA ---------- */
+
+function renderRoute(){
+
+  routeLoadState();
+
+  const gpsKm =
+    Number(routeState.gpsKm)||0;
+
+  const usedKm =
+    getRouteUsedKm();
+
+  const distance =
+    document.getElementById(
+      "routeDistance"
+    );
+
+  if(!distance){
+    return;
+  }
+
+  distance.textContent =
+    formatNumber(
+      usedKm,
+      1
+    );
+
+  document.getElementById(
+    "routeGpsKm"
+  ).textContent =
+    formatNumber(
+      gpsKm,
+      1
+    ) + " km";
+
+  document.getElementById(
+    "routeUsedKm"
+  ).textContent =
+    formatNumber(
+      usedKm,
+      1
+    ) + " km";
+
+  document.getElementById(
+    "routeTime"
+  ).textContent =
+    routeFormatTime(
+      routeElapsed()
+    );
+
+  document.getElementById(
+    "routeRefuelCount"
+  ).textContent =
+    routeState.refuels.length;
+
+  const manual =
+    document.getElementById(
+      "routeManualKm"
+    );
+
+  if(
+    document.activeElement !== manual
+  ){
+
+    manual.value =
+      Number.isFinite(routeState.manualKm)
+        ? formatInputValue(
+            routeState.manualKm
+          )
+        : "";
+
+  }
+
+  const status =
+    document.getElementById(
+      "routeStatusText"
+    );
+
+  const dot =
+    document.getElementById(
+      "routeDot"
+    );
+
+  if(!routeState.active){
+
+    status.textContent =
+      "Ruta detenida";
+
+    dot.classList.remove("live");
+
+  }else if(routeState.paused){
+
+    status.textContent =
+      "Ruta pausada";
+
+    dot.classList.remove("live");
+
+  }else{
+
+    status.textContent =
+      "Ruta en curso";
+
+    dot.classList.add("live");
+
+  }
+
+  const start =
+    document.getElementById(
+      "routeStartBtn"
+    );
+
+  const pause =
+    document.getElementById(
+      "routePauseBtn"
+    );
+
+  const finish =
+    document.getElementById(
+      "routeFinishBtn"
+    );
+
+  start.disabled =
+    routeState.active;
+
+  pause.disabled =
+    !routeState.active;
+
+  finish.disabled =
+    !routeState.active;
+
+  start.style.opacity =
+    routeState.active
+      ? ".45"
+      : "1";
+
+  pause.textContent =
+    routeState.paused
+      ? "▶ CONTINUAR"
+      : "⏸ PAUSAR";
+
+  renderRouteRefuels();
+  renderRouteHistory();
+
+}
+
+
+function renderRouteRefuels(){
+
+  const list =
+    document.getElementById(
+      "routeRefuelList"
+    );
+
+  if(!list){
+    return;
+  }
+
+  const refuels =
+    routeState.refuels || [];
+
+  if(!refuels.length){
+
+    list.innerHTML =
+      `
+      <div class="route-gps-note">
+        Todavía no hay repostajes asociados a esta ruta.
+      </div>
+      `;
+
+    return;
+  }
+
+  list.innerHTML =
+    refuels
+      .map((r,i) => {
+
+        return `
+        <div class="route-history-item"
+             style="margin-top:9px">
+
+          <div class="route-history-title">
+
+            <strong>
+              Repostaje ${i+1}
+            </strong>
+
+            <span class="route-history-date">
+              ${formatNumber(
+                r.routeKm,
+                1
+              )} km
+            </span>
+
+          </div>
+
+          <div class="route-history-grid">
+
+            <div class="history-cell">
+              <span>Litros</span>
+              <strong>
+                ${formatNumber(
+                  r.liters,
+                  2
+                )} L
+              </strong>
+            </div>
+
+            <div class="history-cell">
+              <span>Coste</span>
+              <strong>
+                ${
+                  Number.isFinite(r.cost)
+                    ? formatNumber(
+                        r.cost,
+                        2
+                      ) + " €"
+                    : "--"
+                }
+              </strong>
+            </div>
+
+          </div>
+
+        </div>
+        `;
+
+      })
+      .join("");
+}
+
+
+/* ---------- HISTORIAL DE RUTAS ---------- */
+
+function renderRouteHistory(){
+
+  const list =
+    document.getElementById(
+      "routeHistoryList"
+    );
+
+  if(!list){
+    return;
+  }
+
+  const routes =
+    Array.isArray(appData.routes)
+      ? appData.routes
+      : [];
+
+  if(!routes.length){
+
+    list.innerHTML =
+      `
+      <div class="route-gps-note">
+        Todavía no has guardado ninguna ruta.
+      </div>
+      `;
+
+    return;
+  }
+
+  list.innerHTML =
+    routes
+      .slice()
+      .reverse()
+      .map(route => {
+
+        let totalLiters = 0;
+        let totalCost = 0;
+
+        route.refuels =
+          Array.isArray(route.refuels)
+            ? route.refuels
+            : [];
+
+        route.refuels.forEach(r => {
+
+          totalLiters +=
+            Number(r.liters)||0;
+
+          if(
+            Number.isFinite(r.cost)
+          ){
+            totalCost += r.cost;
+          }
+
+        });
+
+        const consumption =
+          route.usedKm > 0 &&
+          totalLiters > 0
+            ? totalLiters /
+              route.usedKm *
+              100
+            : null;
+
+        return `
+        <div class="route-history-item">
+
+          <div class="route-history-title">
+
+            <strong>
+              ${escapeHtml(
+                route.bikeName ||
+                "Ruta"
+              )}
+            </strong>
+
+            <span class="route-history-date">
+              ${escapeHtml(
+                formatDate(route.date)
+              )}
+            </span>
+
+          </div>
+
+          <div class="route-history-grid">
+
+            <div class="history-cell">
+              <span>Distancia utilizada</span>
+              <strong>
+                ${formatNumber(
+                  route.usedKm,
+                  1
+                )} km
+              </strong>
+            </div>
+
+            <div class="history-cell">
+              <span>GPS</span>
+              <strong>
+                ${formatNumber(
+                  route.gpsKm,
+                  1
+                )} km
+              </strong>
+            </div>
+
+            <div class="history-cell">
+              <span>Repostajes</span>
+              <strong>
+                ${route.refuels.length}
+              </strong>
+            </div>
+
+            <div class="history-cell">
+              <span>Tiempo</span>
+              <strong>
+                ${routeFormatTime(
+                  route.elapsedSeconds
+                )}
+              </strong>
+            </div>
+
+          </div>
+
+          <div class="history-cycle">
+
+            ${
+              consumption !== null
+                ? `
+                  Consumo de ruta:
+                  <strong>
+                    ${formatNumber(
+                      consumption,
+                      2
+                    )} L/100 km
+                  </strong>
+                  ·
+                  ${formatNumber(
+                    totalLiters,
+                    2
+                  )} L
+                `
+                : `
+                  Consumo de ruta:
+                  <strong>
+                    pendiente de datos
+                  </strong>
+                `
+            }
+
+            ${
+              totalCost > 0
+                ? `
+                  · ${formatNumber(
+                      totalCost,
+                      2
+                    )} €
+                `
+                : ""
+            }
+
+          </div>
+
+        </div>
+        `;
+
+      })
+      .join("");
+}
+
+
+/* ---------- BOTONES ---------- */
+
+document
+  .getElementById("routeStartBtn")
+  .addEventListener(
+    "click",
+    startRoute
+  );
+
+document
+  .getElementById("routePauseBtn")
+  .addEventListener(
+    "click",
+    togglePauseRoute
+  );
+
+document
+  .getElementById("routeFinishBtn")
+  .addEventListener(
+    "click",
+    finishRoute
+  );
+
+document
+  .getElementById("routeRefuelBtn")
+  .addEventListener(
+    "click",
+    () => {
+
+      if(!routeState.active){
+
+        showToast(
+          "Inicia una ruta antes de registrar un repostaje de ruta."
+        );
+
+        return;
+      }
+
+      openRefuelModal();
+
+    }
+  );
+
+
+/* ---------- KM MANUALES ---------- */
+
+document
+  .getElementById("routeManualKm")
+  .addEventListener(
+    "input",
+    event => {
+
+      const raw =
+        event.target.value
+          .trim()
+          .replace(",", ".");
+
+      if(raw === ""){
+
+        routeState.manualKm =
+          null;
+
+        routeSaveState();
+        renderRoute();
+
+        return;
+      }
+
+      const value =
+        Number(raw);
+
+      if(
+        Number.isFinite(value) &&
+        value >= 0
+      ){
+
+        routeState.manualKm =
+          value;
+
+        routeSaveState();
+        renderRoute();
+
+      }
+
+    }
+  );
+
+
+/* ---------- NAVEGACIÓN MODIFICADA ---------- */
+
+const originalNavigate =
+  navigate;
+
+navigate = function(page){
+
+  if(page === "route"){
+
+    currentPage = "route";
+
+    document
+      .querySelectorAll(".page")
+      .forEach(element => {
+
+        element.classList.toggle(
+          "active",
+          element.id === "page-route"
+        );
+
+      });
+
+    document
+      .querySelectorAll(".nav-btn")
+      .forEach(button => {
+
+        button.classList.toggle(
+          "active",
+          button.dataset.page === "route"
+        );
+
+      });
+
+    renderRoute();
+
+    window.scrollTo({
+      top:0,
+      behavior:"instant"
+    });
+
+    return;
+  }
+
+  originalNavigate(page);
+
+  if(page === "settings"){
+    renderProfiles();
+  }
+
+};
+
+
+/* ---------- RENDER GLOBAL ---------- */
+
+const originalRender =
+  render;
+
+render = function(){
+
+  originalRender();
+
+  renderProfiles();
+  renderRoute();
+
+};
+
+
+/* ---------- RECUPERAR RUTA ACTIVA ---------- */
+
+routeLoadState();
+
+if(
+  routeState.active
+){
+
+  /*
+   * Si la página se recarga durante una ruta,
+   * recuperamos el seguimiento.
+   */
+
+  if(
+    !routeState.paused
+  ){
+    routeStartGPS();
+  }
+
+}
+
+
+/* ---------- ACTUALIZACIÓN DEL CRONÓMETRO ---------- */
+
+setInterval(
+  () => {
+
+    if(
+      routeState.active
+    ){
+
+      const time =
+        document.getElementById(
+          "routeTime"
+        );
+
+      if(time){
+
+        time.textContent =
+          routeFormatTime(
+            routeElapsed()
+          );
+
+      }
+
+    }
+
+  },
+  1000
+);
+
+
+/* ---------- GUARDADO AL SALIR ---------- */
+
+window.addEventListener(
+  "pagehide",
+  () => {
+
+    if(routeState.active){
+      routeSaveState();
+    }
+
+  }
+);
+
+
+/* ---------- PRIMER RENDER ---------- */
+
+renderProfiles();
+renderRoute();
+
+})();
+</script>
   if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js")
