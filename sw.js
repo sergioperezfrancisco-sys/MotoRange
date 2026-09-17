@@ -1,4 +1,4 @@
-const CACHE_NAME = "motorange-v4";
+const CACHE_NAME = "motorange-v5";
 
 const APP_FILES = [
   "./",
