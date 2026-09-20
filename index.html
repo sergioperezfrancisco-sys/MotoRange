@@ -5032,15 +5032,20 @@ renderRoute();
       title:"Comprobar nivel de aceite · " + formatInteger(oilCheckKm) + " km", dueKm:oilCheckKm, dueDate:"",
       notes:"Comprobación oficial cada 500 km. Manual oficial Voge 900 DSX, págs. 143–145.", recurrence:"oil-level"
     });
-    const dueDate = maintenanceDatePlusYears(appData.registrationDate || today(), 2);
+    const dueDate = appData.registrationDate
+      ? maintenanceDatePlusYears(appData.registrationDate, 2)
+      : "";
     ["coolant","brake-fluid"].forEach((kind) => {
       const existing = appData.maintenance.find(m => !m.completed && m.scheduled && m.recurrence === kind);
       if(existing && appData.registrationDate){
         existing.dueDate = dueDate;
         existing.planKey = kind + "-" + dueDate;
+      }else if(existing && !appData.registrationDate){
+        existing.dueDate = "";
+        existing.planKey = kind + "-no-registration-date";
       }else if(!existing){
         addScheduledMaintenance({
-          id:"plan-" + kind + "-" + dueDate, planKey:kind + "-" + dueDate, scheduled:true,
+          id:"plan-" + kind + "-" + (dueDate || "no-registration-date"), planKey:kind + "-" + (dueDate || "no-registration-date"), scheduled:true,
           title:kind === "coolant" ? "Sustituir líquido refrigerante · 2 años" : "Sustituir líquido de frenos · 2 años",
           dueKm:null, dueDate, notes:"Intervalo oficial cada 2 años. Manual oficial Voge 900 DSX, págs. 143–145.", recurrence:kind
         });
