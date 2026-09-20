@@ -459,7 +459,7 @@ header{
   border-radius:20px;
   padding:7px;
   display:grid;
-  grid-template-columns:repeat(6,minmax(0,1fr));
+  grid-template-columns:repeat(4,minmax(0,1fr));
   box-shadow:0 16px 45px rgba(0,0,0,.55);
   transition:transform .24s ease,opacity .24s ease;
 }
@@ -481,10 +481,21 @@ header{
 }
 
 .nav-btn.route-nav{
-   grid-column:1 / -1;
-   width:100%;
-   min-height:40px;
    order:-1;
+   min-height:58px;
+   color:var(--light-ochre);
+   background:rgba(184,138,59,.16);
+   border:1px solid var(--bronze);
+   box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);
+}
+
+.nav-btn.route-nav .nav-icon{
+   font-size:21px;
+}
+
+.nav-btn.route-nav.active{
+   color:#080706;
+   background:var(--ochre);
 }
 
 .nav-btn:not(.route-nav){
@@ -644,6 +655,7 @@ header{
 
 .field{
   margin-bottom:14px;
+  min-width:0;
 }
 
 .field:last-child{
@@ -660,6 +672,8 @@ header{
 
 .input{
   width:100%;
+  max-width:100%;
+  min-width:0;
   min-height:48px;
   border:1px solid var(--border);
   border-radius:14px;
@@ -668,6 +682,13 @@ header{
   padding:11px 13px;
   outline:none;
   font-size:16px;
+}
+
+#registrationDateInput{
+  display:block;
+  width:100%;
+  max-width:100%;
+  min-width:0;
 }
 
 .input:focus{
@@ -949,7 +970,6 @@ input[type="date"]{
   </div>
   <div class="header-status">
     <div class="header-bike" id="headerBike">Voge 900 DSX</div>
-    <div class="status-pill" id="connectionStatus">En línea</div>
   </div>
 </header>
 
@@ -1834,18 +1854,6 @@ function getFuelSemanticState(calc){
     className:"normal",
     color:"var(--fuel-normal)"
   };
-}
-
-function updateConnectionStatus(){
-  const status = document.getElementById("connectionStatus");
-  if(!status){
-    return;
-  }
-
-  const online = navigator.onLine;
-  status.textContent = online ? "En línea" : "Sin conexión";
-  status.classList.toggle("online", online);
-  status.classList.toggle("offline", !online);
 }
 
 function renderHome(){
@@ -2836,17 +2844,8 @@ function setupEvents(){
   // Keep state safe if browser restores an invalid value.
   window.addEventListener("pagehide",saveData);
   window.addEventListener("beforeunload",saveData);
-  window.addEventListener("online", () => {
-    updateConnectionStatus();
-    showToast("Conexión restaurada.");
-  });
-  window.addEventListener("offline", () => {
-    updateConnectionStatus();
-    showToast("Has perdido la conexión.");
-  });
 }
 
-updateConnectionStatus();
 setupEvents();
 render();
 
@@ -2966,6 +2965,19 @@ routeStyles.textContent = `
   grid-template-columns:1fr 1fr;
   gap:8px;
   margin-top:12px;
+}
+.route-history-refuels{
+  margin-top:12px;
+  padding-top:10px;
+  border-top:1px solid var(--border);
+  color:var(--muted);
+  font-size:12px;
+}
+.route-history-refuel{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  padding-top:7px;
 }
 .route-profile{
   display:flex;
@@ -3336,7 +3348,7 @@ routePage.innerHTML = `
     para todos los cálculos de la ruta.
   </div>
 
-  <button class="button secondary" id="routeRefuelBtn" type="button">
+  <button class="button secondary" id="routeRefuelBtn" type="button" hidden>
     ⛽ REGISTRAR REPOSTAJE
   </button>
 
@@ -4240,6 +4252,11 @@ function renderRoute(){
       "routeFinishBtn"
     );
 
+  const refuelButton =
+    document.getElementById(
+      "routeRefuelBtn"
+    );
+
   start.disabled =
     routeState.active;
 
@@ -4248,6 +4265,10 @@ function renderRoute(){
 
   finish.disabled =
     !routeState.active;
+
+  if(refuelButton){
+    refuelButton.hidden = !routeState.active;
+  }
 
   start.style.opacity =
     routeState.active
@@ -4517,6 +4538,22 @@ function renderRouteHistory(){
             }
 
           </div>
+
+          ${
+            route.refuels.length
+              ? `
+                <div class="route-history-refuels">
+                  <strong>Repostajes de la ruta</strong>
+                  ${route.refuels.map((refuel,index) => `
+                    <div class="route-history-refuel">
+                      <span>Repostaje ${index + 1} · ${formatNumber(refuel.routeKm,1)} km</span>
+                      <span>${formatNumber(refuel.liters,2)} L${Number.isFinite(refuel.cost) ? " · " + formatNumber(refuel.cost,2) + " €" : ""}</span>
+                    </div>
+                  `).join("")}
+                </div>
+              `
+              : ""
+          }
 
         </div>
         `;
