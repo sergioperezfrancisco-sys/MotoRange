@@ -1634,11 +1634,15 @@ function normalizeMaintenance(item){
   const dueKm = rawDueKm === null || rawDueKm === undefined || String(rawDueKm).trim() === ""
     ? null
     : Number(rawDueKm);
+  const recurrence = typeof item.recurrence === "string" ? item.recurrence : "";
+  const normalizedDueKm = (recurrence === "coolant" || recurrence === "brake-fluid") && dueKm === 0
+    ? null
+    : dueKm;
   return {
     id: typeof item.id === "string" && item.id ? item.id : "maint_" + Date.now() + "_" + Math.random().toString(36).slice(2,8),
     title: typeof item.title === "string" ? item.title.slice(0,100) : "Mantenimiento",
     dueDate: typeof item.dueDate === "string" ? item.dueDate : "",
-    dueKm: Number.isFinite(dueKm) && dueKm >= 0 ? dueKm : null,
+    dueKm: Number.isFinite(normalizedDueKm) && normalizedDueKm >= 0 ? normalizedDueKm : null,
     completedDate: typeof item.completedDate === "string"
       ? item.completedDate
       : (typeof item.date === "string" ? item.date : ""),
@@ -1647,7 +1651,7 @@ function normalizeMaintenance(item){
     completed: Boolean(item.completed),
     scheduled: Boolean(item.scheduled),
     planKey: typeof item.planKey === "string" ? item.planKey.slice(0,80) : "",
-    recurrence: typeof item.recurrence === "string" ? item.recurrence : ""
+    recurrence
   };
 }
 
@@ -5039,9 +5043,11 @@ renderRoute();
       const existing = appData.maintenance.find(m => !m.completed && m.scheduled && m.recurrence === kind);
       if(existing && appData.registrationDate){
         existing.dueDate = dueDate;
+        existing.dueKm = null;
         existing.planKey = kind + "-" + dueDate;
       }else if(existing && !appData.registrationDate){
         existing.dueDate = "";
+        existing.dueKm = null;
         existing.planKey = kind + "-no-registration-date";
       }else if(!existing){
         addScheduledMaintenance({
