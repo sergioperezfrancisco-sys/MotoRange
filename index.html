@@ -70,6 +70,57 @@ header{
   display:flex;
   align-items:center;
   justify-content:space-between;
+  gap:12px;
+}
+
+.header-status{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+}
+
+.status-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  border-radius:999px;
+  padding:7px 10px;
+  border:1px solid var(--border);
+  background:rgba(17,16,14,.7);
+  color:var(--muted);
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.8px;
+  text-transform:uppercase;
+}
+
+.status-pill::before{
+  content:"";
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:var(--muted);
+  box-shadow:0 0 0 3px rgba(255,255,255,.05);
+}
+
+.status-pill.online{
+  color:#C7E7C8;
+  border-color:rgba(102,182,106,.32);
+  background:rgba(102,182,106,.07);
+}
+
+.status-pill.online::before{
+  background:#66B66A;
+}
+
+.status-pill.offline{
+  color:#F0C7AF;
+  border-color:rgba(194,138,62,.35);
+  background:rgba(194,138,62,.08);
+}
+
+.status-pill.offline::before{
+  background:#C28A3E;
 }
 
 .brand{
@@ -809,6 +860,35 @@ header{
   display:none!important;
 }
 
+.quick-actions{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:7px;
+}
+.quick-action{
+  min-height:64px;
+  padding:8px 4px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:var(--surface-2);
+  color:var(--cream);
+  font-size:10px;
+  font-weight:800;
+}
+.quick-action span{display:block;font-size:18px;margin-bottom:3px}
+.data-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.record-actions{display:flex;gap:7px;margin-top:10px}
+.record-actions button{flex:1;min-height:34px}
+.filter-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.expense-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mini-chart{height:110px;width:100%;display:block;margin-top:10px}
+.chart-bar{fill:var(--ochre)}
+.maintenance-due{color:#D8B277}
+.maintenance-overdue{color:#D28A82}
+.recurrence-fields{display:none}
+.recurrence-fields.show{display:block}
+@media(max-width:390px){.quick-actions{grid-template-columns:repeat(2,1fr)}}
+
 @media(min-width:700px){
   .app{
     padding-bottom:115px;
@@ -836,7 +916,10 @@ header{
       <span>Autonomía inteligente</span>
     </div>
   </div>
-  <div class="header-bike" id="headerBike">Voge 900 DSX</div>
+  <div class="header-status">
+    <div class="header-bike" id="headerBike">Voge 900 DSX</div>
+    <div class="status-pill" id="connectionStatus">En línea</div>
+  </div>
 </header>
 
 <main>
@@ -904,6 +987,10 @@ header{
   <div class="card">
     <div class="card-title">Acciones</div>
     <button class="button primary" id="openRefuelBtn">REGISTRAR REPOSTAJE</button>
+    <div class="button-row" style="margin-top:9px">
+      <button class="button secondary" id="installAppBtn" type="button">INSTALAR APP</button>
+      <button class="button secondary" id="refreshDataBtn" type="button">ACTUALIZAR</button>
+    </div>
   </div>
 
   <div class="card">
@@ -914,6 +1001,16 @@ header{
     </div>
     <div class="settings-note">
       Este valor representa el kilometraje actual del tramo desde el último repostaje. Cambiarlo no acumula kilómetros automáticamente.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Accesos rápidos</div>
+    <div class="quick-actions">
+      <button class="quick-action" id="quickRefuel" type="button"><span>⛽</span>Repostaje</button>
+      <button class="quick-action" id="quickExpense" type="button"><span>€</span>Gasto</button>
+      <button class="quick-action" id="quickMaintenance" type="button"><span>🔧</span>Mantenimiento</button>
+      <button class="quick-action" id="quickRoute" type="button"><span>🏍️</span>Ruta</button>
     </div>
   </div>
 </section>
@@ -1056,6 +1153,53 @@ header{
   </div>
 </section>
 
+<section class="page" id="page-expenses">
+  <div class="page-heading"><h1>Gastos</h1><p>Controla gastos puntuales y recurrentes.</p></div>
+  <div class="card">
+    <div class="expense-summary">
+      <div class="history-stat"><span>Total filtrado</span><strong id="expenseTotal">0 €</strong></div>
+      <div class="history-stat"><span>Mes filtrado</span><strong id="expenseMonth">0 €</strong></div>
+      <div class="history-stat"><span>Registros filtrados</span><strong id="expenseCount">0</strong></div>
+    </div>
+    <svg class="mini-chart" id="expenseChart" viewBox="0 0 360 110" role="img" aria-label="Gastos por mes"></svg>
+  </div>
+  <div class="card">
+    <div class="filter-row">
+      <select class="input" id="expenseFilterPreset" aria-label="Periodo">
+        <option value="all">Todo</option><option value="month">Este mes</option><option value="year">Este año</option><option value="custom">Periodo personalizado</option>
+      </select>
+      <input class="input" id="expenseFilterCategory" placeholder="Filtrar categoría">
+    </div>
+    <div class="filter-row" id="expenseCustomFilters">
+      <input class="input" id="expenseFilterFrom" type="date" aria-label="Desde">
+      <input class="input" id="expenseFilterTo" type="date" aria-label="Hasta">
+    </div>
+    <button class="button primary" id="addExpenseBtn" type="button">+ AÑADIR GASTO</button>
+  </div>
+  <div id="expenseList"></div>
+</section>
+
+<section class="page" id="page-maintenance">
+  <div class="page-heading"><h1>Mantenimiento</h1><p>Revisiones, vencimientos y alertas de servicio.</p></div>
+  <div class="card"><button class="button primary" id="addMaintenanceBtn" type="button">+ AÑADIR MANTENIMIENTO</button></div>
+  <div id="maintenanceList"></div>
+</section>
+
+<section class="page" id="page-statistics">
+  <div class="page-heading"><h1>Estadísticas</h1><p>Una visión conjunta del uso y los costes.</p></div>
+  <div class="history-stats">
+    <div class="history-stat"><span>Consumo medio real</span><strong id="statsConsumption">--</strong></div>
+    <div class="history-stat"><span>Mejor / peor consumo</span><strong id="statsBestWorst">--</strong></div>
+    <div class="history-stat"><span>Km registrados</span><strong id="statsKm">0 km</strong></div>
+    <div class="history-stat"><span>Litros consumidos</span><strong id="statsLiters">0 L</strong></div>
+    <div class="history-stat"><span>Coste combustible</span><strong id="statsFuelCost">0 €</strong></div>
+    <div class="history-stat"><span>Otros gastos</span><strong id="statsExpenseCost">0 €</strong></div>
+    <div class="history-stat"><span>Coste total</span><strong id="statsTotalCost">0 €</strong></div>
+  </div>
+  <div class="card"><div class="card-title">Distribución por categoría</div><svg class="mini-chart" id="statsChart" viewBox="0 0 360 110"></svg></div>
+  <div class="card data-actions"><button class="button secondary" id="exportDataBtn" type="button">EXPORTAR JSON</button><button class="button secondary" id="importDataBtn" type="button">IMPORTAR JSON</button><input id="importDataInput" type="file" accept="application/json,.json" class="hidden"></div>
+</section>
+
 </main>
 
 <nav class="bottom-nav">
@@ -1071,6 +1215,9 @@ header{
     <span class="nav-icon">⚙</span>
     Ajustes
   </button>
+  <button class="nav-btn" data-page="expenses"><span class="nav-icon">€</span>Gastos</button>
+  <button class="nav-btn" data-page="maintenance"><span class="nav-icon">🔧</span>Mantenimiento</button>
+  <button class="nav-btn" data-page="statistics"><span class="nav-icon">◒</span>Stats</button>
 </nav>
 
 </div>
@@ -1108,7 +1255,39 @@ header{
       </div>
     </div>
 
+    <div class="input-row">
+      <div class="field">
+        <label for="refuelStation">GASOLINERA · OPCIONAL</label>
+        <input class="input" id="refuelStation" type="text" maxlength="100" placeholder="Nombre o ubicación">
+      </div>
+      <div class="field">
+        <label for="refuelNotes">NOTAS · OPCIONAL</label>
+        <input class="input" id="refuelNotes" type="text" maxlength="240" placeholder="Observaciones">
+      </div>
+    </div>
+
     <button class="button primary" id="saveRefuelBtn" type="button">GUARDAR REPOSTAJE</button>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="expenseModal">
+  <div class="modal"><div class="modal-header"><h2 id="expenseModalTitle">Añadir gasto</h2><button class="close" data-close-modal="expenseModal" type="button">×</button></div>
+    <div class="input-row"><div class="field"><label for="expenseCategory">CATEGORÍA</label><select class="input" id="expenseCategory"><option>Combustible</option><option>Seguro</option><option>Mantenimiento</option><option>Neumáticos</option><option>Revisiones</option><option>Parking</option><option>Impuestos</option><option>Accesorios</option><option>Equipamiento</option><option>Reparaciones</option><option>Otros</option></select></div><div class="field"><label for="expenseAmount">IMPORTE · €</label><input class="input" id="expenseAmount" type="number" min="0" step="0.01" inputmode="decimal"></div></div>
+    <div class="input-row"><div class="field"><label for="expenseDate">FECHA</label><input class="input" id="expenseDate" type="date"></div><div class="field"><label for="expenseKm">KM · OPCIONAL</label><input class="input" id="expenseKm" type="number" min="0" step="0.1" inputmode="decimal"></div></div>
+    <div class="field"><label for="expenseNotes">NOTAS</label><input class="input" id="expenseNotes" type="text" maxlength="240"></div>
+    <div class="toggle-row"><div class="toggle-text"><strong>Gasto recurrente</strong><span>Genera ocurrencias futuras sin duplicarlas.</span></div><button class="toggle" id="expenseRecurringToggle" type="button"><span></span></button></div>
+    <div class="recurrence-fields" id="recurrenceFields"><div class="input-row"><div class="field"><label for="expensePeriod">PERIODICIDAD</label><select class="input" id="expensePeriod"><option value="weekly">Semanal</option><option value="monthly">Mensual</option><option value="bimonthly">Cada 2 meses</option><option value="quarterly">Trimestral</option><option value="semiannual">Semestral</option><option value="annual">Anual</option><option value="custom">Personalizada</option></select></div><div class="field"><label for="expenseInterval">DÍAS · PERSONALIZADA</label><input class="input" id="expenseInterval" type="number" min="1" step="1" value="30"></div></div></div>
+    <button class="button primary" id="saveExpenseBtn" type="button">GUARDAR GASTO</button>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="maintenanceModal">
+  <div class="modal"><div class="modal-header"><h2 id="maintenanceModalTitle">Añadir mantenimiento</h2><button class="close" data-close-modal="maintenanceModal" type="button">×</button></div>
+    <div class="field"><label for="maintenanceTitle">TAREA</label><input class="input" id="maintenanceTitle" type="text" maxlength="100"></div>
+    <div class="input-row"><div class="field"><label for="maintenanceDueDate">FECHA LÍMITE</label><input class="input" id="maintenanceDueDate" type="date"></div><div class="field"><label for="maintenanceDueKm">KM LÍMITE</label><input class="input" id="maintenanceDueKm" type="number" min="0" step="1" inputmode="numeric"></div></div>
+    <div class="input-row"><div class="field"><label for="maintenanceDate">FECHA REALIZACIÓN</label><input class="input" id="maintenanceDate" type="date"></div><div class="field"><label for="maintenanceCost">COSTE · €</label><input class="input" id="maintenanceCost" type="number" min="0" step="0.01"></div></div>
+    <div class="field"><label for="maintenanceNotes">NOTAS</label><input class="input" id="maintenanceNotes" type="text" maxlength="240"></div>
+    <button class="button primary" id="saveMaintenanceBtn" type="button">GUARDAR MANTENIMIENTO</button>
   </div>
 </div>
 
@@ -1118,7 +1297,7 @@ header{
 "use strict";
 
 const STORAGE_KEY = "motorange_app_v2";
-const STORAGE_VERSION = 2;
+const STORAGE_VERSION = 3;
 const LEGACY_STORAGE_KEY = "motorange_app_v1";
 
 const DEFAULT_DATA = {
@@ -1145,7 +1324,10 @@ const DEFAULT_DATA = {
   totalLitersForConsumption: 0,
   realConsumption: null,
 
-  history: []
+  history: [],
+  expenses: [],
+  maintenance: [],
+  routes: []
 };
 
 let appData = loadData();
@@ -1189,7 +1371,7 @@ function formatOptional(value, decimals = 2, suffix = ""){
   return formatNumber(n, decimals) + suffix;
 }
 
-function normalizeHistoryEntry(entry){
+function normalizeHistoryEntry(entry, index){
   if(!entry || typeof entry !== "object") return null;
 
   const date = typeof entry.date === "string" && entry.date
@@ -1225,6 +1407,7 @@ function normalizeHistoryEntry(entry){
     : null;
 
   return {
+    id: typeof entry.id === "string" && entry.id ? entry.id : "refuel_legacy_" + index,
     date,
     type,
     liters,
@@ -1233,7 +1416,9 @@ function normalizeHistoryEntry(entry){
     cycleLiters,
     consumption,
     price,
-    cost
+    cost,
+    station: typeof entry.station === "string" ? entry.station.slice(0,100) : "",
+    notes: typeof entry.notes === "string" ? entry.notes.slice(0,240) : ""
   };
 }
 
@@ -1306,10 +1491,50 @@ function normalizeData(raw){
   }
 
   data.history = data.history
-    .map(normalizeHistoryEntry)
+  .map((entry, index) => normalizeHistoryEntry(entry, index))
     .filter(Boolean);
 
+  data.expenses = Array.isArray(data.expenses) ? data.expenses.map(normalizeExpense).filter(Boolean) : [];
+  data.maintenance = Array.isArray(data.maintenance) ? data.maintenance.map(normalizeMaintenance).filter(Boolean) : [];
+  data.routes = Array.isArray(data.routes) ? data.routes : [];
+
   return data;
+}
+
+function normalizeExpense(item){
+  if(!item || typeof item !== "object") return null;
+  const amount = nonNegativeNumber(item.amount, 0);
+  const date = typeof item.date === "string" && item.date ? item.date : new Date().toISOString().slice(0,10);
+  const recurrence = item.recurrence && typeof item.recurrence === "object" ? item.recurrence : {};
+  return {
+    id: typeof item.id === "string" && item.id ? item.id : "expense_" + Date.now() + "_" + Math.random().toString(36).slice(2,8),
+    category: typeof item.category === "string" && item.category ? item.category.slice(0,60) : "Otro",
+    amount, date, km: Number.isFinite(Number(item.km)) && Number(item.km) >= 0 ? Number(item.km) : null,
+    notes: typeof item.notes === "string" ? item.notes.slice(0,240) : "",
+    generated: Boolean(item.generated),
+    recurrence: {
+      enabled: Boolean(recurrence.enabled),
+      period: typeof recurrence.period === "string" ? recurrence.period : "monthly",
+      intervalDays: Math.max(1, Math.round(finiteNumber(recurrence.intervalDays,30))),
+      nextDate: typeof recurrence.nextDate === "string" ? recurrence.nextDate : null,
+      paused: Boolean(recurrence.paused),
+      parentId: typeof recurrence.parentId === "string" ? recurrence.parentId : null
+    }
+  };
+}
+
+function normalizeMaintenance(item){
+  if(!item || typeof item !== "object") return null;
+  return {
+    id: typeof item.id === "string" && item.id ? item.id : "maint_" + Date.now() + "_" + Math.random().toString(36).slice(2,8),
+    title: typeof item.title === "string" ? item.title.slice(0,100) : "Mantenimiento",
+    dueDate: typeof item.dueDate === "string" ? item.dueDate : "",
+    dueKm: Number.isFinite(Number(item.dueKm)) && Number(item.dueKm) >= 0 ? Number(item.dueKm) : null,
+    completedDate: typeof item.completedDate === "string" ? item.completedDate : "",
+    cost: Number.isFinite(Number(item.cost)) && Number(item.cost) >= 0 ? Number(item.cost) : null,
+    notes: typeof item.notes === "string" ? item.notes.slice(0,240) : "",
+    completed: Boolean(item.completed)
+  };
 }
 
 function migrateLegacyData(){
@@ -1530,6 +1755,18 @@ function getFuelSemanticState(calc){
   };
 }
 
+function updateConnectionStatus(){
+  const status = document.getElementById("connectionStatus");
+  if(!status){
+    return;
+  }
+
+  const online = navigator.onLine;
+  status.textContent = online ? "En línea" : "Sin conexión";
+  status.classList.toggle("online", online);
+  status.classList.toggle("offline", !online);
+}
+
 function renderHome(){
   const calc = calculate();
   const semantic = getFuelSemanticState(calc);
@@ -1621,8 +1858,10 @@ function renderHome(){
       formatInputValue(appData.kmSinceRefuel);
   }
 
-  document.getElementById("headerBike").textContent =
-    appData.bikeName;
+  const headerBike = document.getElementById("headerBike");
+  if(headerBike){
+    headerBike.textContent = appData.bikeName;
+  }
 }
 
 function renderHistory(){
@@ -1822,6 +2061,11 @@ function renderHistoryItem(item){
       </div>
 
       ${cycleText}
+      ${item.station || item.notes ? '<div class="history-cycle">' + (item.station ? '⛽ ' + escapeHtml(item.station) : '') + (item.station && item.notes ? ' · ' : '') + (item.notes ? escapeHtml(item.notes) : '') + '</div>' : ''}
+      <div class="record-actions">
+        <button class="route-small-btn refuel-edit" data-id="${escapeHtml(item.id)}" type="button">Editar</button>
+        <button class="route-small-btn refuel-delete" data-id="${escapeHtml(item.id)}" type="button">Eliminar</button>
+      </div>
     </div>
   `;
 }
@@ -1968,6 +2212,8 @@ function openRefuelModal(){
   document.getElementById("refuelLiters").value = "";
   document.getElementById("refuelPrice").value = "";
   document.getElementById("refuelCost").value = "";
+  document.getElementById("refuelStation").value = "";
+  document.getElementById("refuelNotes").value = "";
   setRefuelType("full");
 
   setTimeout(() => {
@@ -2035,6 +2281,8 @@ function saveRefuel(){
 
   const price = parseOptionalInput("refuelPrice");
   const cost = parseOptionalInput("refuelCost");
+  const station = document.getElementById("refuelStation").value.trim().slice(0,100);
+  const notes = document.getElementById("refuelNotes").value.trim().slice(0,240);
 
   if(price !== null && price < 0){
     showToast("El precio no puede ser negativo.");
@@ -2095,6 +2343,7 @@ function saveRefuel(){
     appData.kmSinceRefuel = 0;
 
     appData.history.push({
+      id:"refuel_" + Date.now() + "_" + Math.random().toString(36).slice(2,8),
       date:new Date().toISOString(),
       type:"partial",
       liters,
@@ -2103,7 +2352,9 @@ function saveRefuel(){
       cycleLiters:null,
       consumption:null,
       price,
-      cost
+      cost,
+      station,
+      notes
     });
 
     saveData();
@@ -2182,6 +2433,7 @@ function saveRefuel(){
   }
 
   appData.history.push({
+    id:"refuel_" + Date.now() + "_" + Math.random().toString(36).slice(2,8),
     date:new Date().toISOString(),
     type:"full",
     liters,
@@ -2196,7 +2448,9 @@ function saveRefuel(){
         : null,
     consumption:cycleConsumption,
     price,
-    cost
+    cost,
+    station,
+    notes
   });
 
   // Establish new full-tank baseline.
@@ -2301,6 +2555,43 @@ function setupEvents(){
     .getElementById("openRefuelBtn")
     .addEventListener("click",openRefuelModal);
 
+  const installBtn = document.getElementById("installAppBtn");
+  if(installBtn){
+    let deferredPrompt = null;
+
+    window.addEventListener("beforeinstallprompt", event => {
+      event.preventDefault();
+      deferredPrompt = event;
+      installBtn.disabled = false;
+      installBtn.style.opacity = "1";
+    });
+
+    const installApp = () => {
+      if(!deferredPrompt){
+        showToast("La app ya está instalada o no está disponible para este navegador.");
+        return;
+      }
+
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.finally(() => {
+        deferredPrompt = null;
+      });
+    };
+
+    installBtn.addEventListener("click", installApp);
+    installBtn.disabled = true;
+    installBtn.style.opacity = "0.6";
+  }
+
+  const refreshDataBtn = document.getElementById("refreshDataBtn");
+  if(refreshDataBtn){
+    refreshDataBtn.addEventListener("click", () => {
+      saveData();
+      render();
+      showToast("Datos actualizados.");
+    });
+  }
+
   document
     .getElementById("closeRefuelBtn")
     .addEventListener("click",closeRefuelModal);
@@ -2375,8 +2666,10 @@ function setupEvents(){
         DEFAULT_DATA.bikeName;
 
       saveData();
-      document.getElementById("headerBike").textContent =
-        appData.bikeName;
+      const headerBike = document.getElementById("headerBike");
+      if(headerBike){
+        headerBike.textContent = appData.bikeName;
+      }
     });
 
   document
@@ -2467,8 +2760,17 @@ function setupEvents(){
   // Keep state safe if browser restores an invalid value.
   window.addEventListener("pagehide",saveData);
   window.addEventListener("beforeunload",saveData);
+  window.addEventListener("online", () => {
+    updateConnectionStatus();
+    showToast("Conexión restaurada.");
+  });
+  window.addEventListener("offline", () => {
+    updateConnectionStatus();
+    showToast("Has perdido la conexión.");
+  });
 }
 
+updateConnectionStatus();
 setupEvents();
 render();
 
@@ -4357,6 +4659,241 @@ window.addEventListener(
 renderProfiles();
 renderRoute();
 
+})();
+
+/* ---------- EXTENSIONES DE COSTES, MANTENIMIENTO Y DATOS ---------- */
+(function(){
+  const expensePeriods = {weekly:7, monthly:30, bimonthly:60, quarterly:91, semiannual:182, annual:365};
+  let editingExpenseId = null;
+  let editingMaintenanceId = null;
+
+  function today(){ return new Date().toISOString().slice(0,10); }
+  function byId(id){ return document.getElementById(id); }
+  function openModal(id){ byId(id).classList.add("show"); }
+  function closeModal(id){ byId(id).classList.remove("show"); }
+  function datePlus(date, days){
+    const d = new Date(date + "T12:00:00");
+    d.setDate(d.getDate() + days);
+    return d.toISOString().slice(0,10);
+  }
+  function recurrenceDate(date, recurrence){
+    if(recurrence.period === "custom" || recurrence.period === "weekly"){
+      return datePlus(date, recurrenceDays(recurrence));
+    }
+    const d = new Date(date + "T12:00:00");
+    const months = {monthly:1, bimonthly:2, quarterly:3, semiannual:6, annual:12}[recurrence.period] || 1;
+    const day = d.getDate();
+    d.setDate(1);
+    d.setMonth(d.getMonth() + months);
+    const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    d.setDate(Math.min(day, lastDay));
+    return d.toISOString().slice(0,10);
+  }
+  function recurrenceDays(r){
+    return r.period === "custom" ? Math.max(1, Math.round(finiteNumber(r.intervalDays,30))) : (expensePeriods[r.period] || 30);
+  }
+  function generateRecurringOccurrences(){
+    let changed = false;
+    const source = appData.expenses.filter(e => e.recurrence && e.recurrence.enabled && !e.generated && !e.recurrence.paused);
+    source.forEach(parent => {
+      let next = parent.recurrence.nextDate || recurrenceDate(parent.date, parent.recurrence);
+      let guard = 0;
+      // Count missed occurrences first; old schedules are advanced without
+      // creating a large backlog, while recent gaps remain visible.
+      let due = 0;
+      let cursor = next;
+      while(cursor <= today() && due < 10000){
+        due++;
+        cursor = recurrenceDate(cursor, parent.recurrence);
+      }
+      if(due > 24){
+        next = cursor;
+      }else{
+        guard = 0;
+        while(next <= today() && guard++ < 24){
+          const id = parent.id + "_" + next;
+          if(!appData.expenses.some(e => e.id === id)){
+            appData.expenses.push(normalizeExpense({...parent, id, date:next, generated:true, recurrence:{...parent.recurrence, enabled:false, parentId:parent.id, nextDate:null}}));
+            changed = true;
+          }
+          next = recurrenceDate(next, parent.recurrence);
+        }
+      }
+      if(parent.recurrence.nextDate !== next){ parent.recurrence.nextDate = next; changed = true; }
+    });
+    if(changed) saveData();
+  }
+  function renderRefuelActions(){
+    const list = byId("historyList");
+    if(!list) return;
+    list.querySelectorAll(".refuel-edit").forEach(b => b.onclick = () => editRefuel(b.dataset.id));
+    list.querySelectorAll(".refuel-delete").forEach(b => b.onclick = () => deleteRefuel(b.dataset.id));
+  }
+  function editRefuel(id){
+    const item = appData.history.find(h => h.id === id);
+    if(!item) return;
+    const date = prompt("Fecha (AAAA-MM-DD o fecha ISO):", item.date || "");
+    if(date === null) return;
+    const liters = prompt("Litros:", item.liters);
+    if(liters === null) return;
+    const km = prompt("Km desde repostaje:", item.km);
+    if(km === null) return;
+    const price = prompt("Precio/L (vacío para borrar):", Number.isFinite(item.price) ? item.price : "");
+    if(price === null) return;
+    const cost = prompt("Coste (vacío para borrar):", Number.isFinite(item.cost) ? item.cost : "");
+    if(cost === null) return;
+    const station = prompt("Gasolinera:", item.station || "");
+    if(station === null) return;
+    const notes = prompt("Notas:", item.notes || "");
+    if(notes === null) return;
+    const nextLiters = Number(liters.replace(",", "."));
+    const nextKm = Number(km.replace(",", "."));
+    if(!Number.isFinite(nextLiters) || nextLiters <= 0 || !Number.isFinite(nextKm) || nextKm < 0){
+      showToast("Litros o kilómetros no válidos.");
+      return;
+    }
+    const nextPrice = price.trim() === "" ? null : Number(price.replace(",", "."));
+    const nextCost = cost.trim() === "" ? null : Number(cost.replace(",", "."));
+    if((nextPrice !== null && (!Number.isFinite(nextPrice) || nextPrice < 0)) ||
+       (nextCost !== null && (!Number.isFinite(nextCost) || nextCost < 0))){
+      showToast("Precio o coste no válidos.");
+      return;
+    }
+    const normalizedDate = date.trim() || item.date;
+    if(Number.isNaN(new Date(normalizedDate).getTime())){
+      showToast("La fecha no es válida.");
+      return;
+    }
+    // Learned totals are deliberately preserved: changing a historical row must
+    // not silently change the learned-consumption precedence or current fuel state.
+    item.date = normalizedDate;
+    item.liters = nextLiters;
+    item.km = nextKm;
+    item.price = nextPrice;
+    item.cost = nextCost;
+    item.station = station.trim().slice(0,100);
+    item.notes = notes.trim().slice(0,240);
+    saveData(); render(); showToast("Repostaje actualizado. Datos aprendidos conservados.");
+  }
+  function deleteRefuel(id){
+    if(!confirm("¿Eliminar este repostaje del historial? Los datos aprendidos se conservarán.")) return;
+    appData.history = appData.history.filter(h => h.id !== id);
+    saveData(); render(); showToast("Repostaje eliminado.");
+  }
+  function renderExpenseChart(items){
+    const svg = byId("expenseChart");
+    if(!svg) return;
+    const totals = {};
+    items.forEach(e => { const key = e.date.slice(0,7); totals[key] = (totals[key] || 0) + e.amount; });
+    const keys = Object.keys(totals).sort().slice(-6);
+    const max = Math.max(1, ...keys.map(k => totals[k]));
+    svg.innerHTML = keys.map((k,i) => {
+      const h = Math.round(totals[k] / max * 80);
+      return '<rect class="chart-bar" x="' + (i*58+12) + '" y="' + (90-h) + '" width="34" height="' + h + '" rx="5"></rect><text x="' + (i*58+29) + '" y="105" text-anchor="middle" fill="#9C9385" font-size="9">' + escapeHtml(k.slice(5)) + '</text>';
+    }).join("");
+  }
+  function renderExpenses(){
+    generateRecurringOccurrences();
+    const category = (byId("expenseFilterCategory") && byId("expenseFilterCategory").value || "").toLowerCase();
+    const from = byId("expenseFilterFrom") && byId("expenseFilterFrom").value || "";
+    const to = byId("expenseFilterTo") && byId("expenseFilterTo").value || "";
+    const preset = byId("expenseFilterPreset") && byId("expenseFilterPreset").value || "all";
+    const now = new Date();
+    const presetFrom = preset === "month"
+      ? new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0,10)
+      : preset === "year"
+        ? new Date(now.getFullYear(), 0, 1).toISOString().slice(0,10)
+        : "";
+    const all = appData.expenses.slice().sort((a,b) => b.date.localeCompare(a.date));
+    const activeFrom = presetFrom || (preset === "custom" ? from : "");
+    const items = all.filter(e => (!category || e.category.toLowerCase().indexOf(category) >= 0) &&
+      (!activeFrom || e.date >= activeFrom) && (!to || e.date <= to));
+    const total = items.reduce((s,e) => s + e.amount, 0);
+    const month = items.filter(e => e.date.slice(0,7) === today().slice(0,7)).reduce((s,e) => s + e.amount, 0);
+    byId("expenseTotal").textContent = formatNumber(total,2) + " €";
+    byId("expenseMonth").textContent = formatNumber(month,2) + " €";
+    byId("expenseCount").textContent = items.length;
+    renderExpenseChart(items);
+    byId("expenseList").innerHTML = items.length ? items.map(e => '<div class="history-item"><div class="history-top"><strong>' + escapeHtml(e.category) + '</strong><span class="history-date">' + escapeHtml(e.date) + '</span></div><div class="history-main"><div class="history-cell"><span>Importe</span><strong>' + formatNumber(e.amount,2) + ' €</strong></div><div class="history-cell"><span>Km</span><strong>' + (e.km === null ? "--" : formatNumber(e.km,1)) + '</strong></div></div>' + (e.notes ? '<div class="history-cycle">' + escapeHtml(e.notes) + '</div>' : '') + '<div class="record-actions"><button class="route-small-btn expense-edit" data-id="' + escapeHtml(e.id) + '">Editar</button><button class="route-small-btn expense-delete" data-id="' + escapeHtml(e.id) + '">Eliminar</button>' + (e.recurrence.enabled ? '<button class="route-small-btn expense-pause" data-id="' + escapeHtml(e.id) + '">' + (e.recurrence.paused ? "Reanudar" : "Pausar") + '</button>' : '') + '</div></div>').join("") : '<div class="card history-empty">No hay gastos con estos filtros.</div>';
+    byId("expenseList").querySelectorAll(".expense-edit").forEach(b => b.onclick = () => openExpense(b.dataset.id));
+    byId("expenseList").querySelectorAll(".expense-delete").forEach(b => b.onclick = () => { if(confirm("¿Eliminar este gasto? Las ocurrencias ya creadas se conservarán.")){ appData.expenses = appData.expenses.filter(e => e.id !== b.dataset.id); saveData(); renderExpenses(); renderStatistics(); }});
+    byId("expenseList").querySelectorAll(".expense-pause").forEach(b => b.onclick = () => { const e=appData.expenses.find(x=>x.id===b.dataset.id); if(e){e.recurrence.paused=!e.recurrence.paused;saveData();renderExpenses();} });
+  }
+  function openExpense(id){
+    editingExpenseId = id || null;
+    const e = id ? appData.expenses.find(x=>x.id===id) : null;
+    byId("expenseModalTitle").textContent = e ? "Editar gasto" : "Añadir gasto";
+    byId("expenseCategory").value = e ? e.category : "Combustible";
+    byId("expenseAmount").value = e ? e.amount : "";
+    byId("expenseDate").value = e ? e.date : today();
+    byId("expenseKm").value = e && e.km !== null ? e.km : "";
+    byId("expenseNotes").value = e ? e.notes : "";
+    const recurring = Boolean(e && e.recurrence.enabled);
+    byId("expenseRecurringToggle").classList.toggle("on", recurring);
+    byId("recurrenceFields").classList.toggle("show", recurring);
+    if(e){ byId("expensePeriod").value=e.recurrence.period; byId("expenseInterval").value=e.recurrence.intervalDays; }
+    openModal("expenseModal");
+  }
+  function saveExpense(){
+    const amount = Number(byId("expenseAmount").value.replace(",",".")), date=byId("expenseDate").value || today();
+    if(!Number.isFinite(amount) || amount < 0){ showToast("Introduce un importe válido."); return; }
+    const recurring=byId("expenseRecurringToggle").classList.contains("on");
+    const old=editingExpenseId && appData.expenses.find(e=>e.id===editingExpenseId);
+    const recurrence={enabled:recurring,period:byId("expensePeriod").value,intervalDays:Math.max(1,Math.round(finiteNumber(byId("expenseInterval").value,30))),nextDate:recurring ? recurrenceDate(date, {period:byId("expensePeriod").value,intervalDays:byId("expenseInterval").value}) : null,paused:old ? old.recurrence.paused : false,parentId:null};
+    const item=normalizeExpense({...(old||{}),id:editingExpenseId||"expense_"+Date.now(),category:byId("expenseCategory").value,amount,date,km:byId("expenseKm").value===""?null:Number(byId("expenseKm").value),notes:byId("expenseNotes").value,recurrence,generated:false});
+    if(editingExpenseId) appData.expenses=appData.expenses.map(e=>e.id===editingExpenseId?item:e); else appData.expenses.push(item);
+    saveData(); closeModal("expenseModal"); renderExpenses(); renderStatistics(); showToast("Gasto guardado.");
+  }
+  function renderMaintenance(){
+    const now=today(), current=calculate().km;
+    const list=appData.maintenance.slice().sort((a,b)=>(a.completed-b.completed)||(a.dueDate||"").localeCompare(b.dueDate||""));
+    byId("maintenanceList").innerHTML=list.length?list.map(m=>{const overdue=!m.completed&&((m.dueDate&&m.dueDate<now)||(m.dueKm!==null&&current>=m.dueKm));return '<div class="history-item"><div class="history-top"><strong>'+escapeHtml(m.title)+'</strong><span class="'+(overdue?"maintenance-overdue":"maintenance-due")+'">'+(m.completed?"Completado":overdue?"Pendiente atrasado":"Pendiente")+'</span></div><div class="history-main"><div class="history-cell"><span>Fecha límite</span><strong>'+escapeHtml(m.dueDate||"--")+'</strong></div><div class="history-cell"><span>Km límite</span><strong>'+(m.dueKm===null?"--":formatNumber(m.dueKm,0))+'</strong></div></div><div class="record-actions"><button class="route-small-btn maintenance-edit" data-id="'+escapeHtml(m.id)+'">Editar</button><button class="route-small-btn maintenance-done" data-id="'+escapeHtml(m.id)+'">'+(m.completed?"Reabrir":"Completar")+'</button><button class="route-small-btn maintenance-delete" data-id="'+escapeHtml(m.id)+'">Eliminar</button></div></div>'}).join(""):'<div class="card history-empty">No hay mantenimientos registrados.</div>';
+    byId("maintenanceList").querySelectorAll(".maintenance-edit").forEach(b=>b.onclick=()=>openMaintenance(b.dataset.id));
+    byId("maintenanceList").querySelectorAll(".maintenance-done").forEach(b=>b.onclick=()=>{const m=appData.maintenance.find(x=>x.id===b.dataset.id);if(m){m.completed=!m.completed;m.completedDate=m.completed?today():"";saveData();renderMaintenance();renderStatistics();}});
+    byId("maintenanceList").querySelectorAll(".maintenance-delete").forEach(b=>b.onclick=()=>{if(confirm("¿Eliminar este mantenimiento?")){appData.maintenance=appData.maintenance.filter(x=>x.id!==b.dataset.id);saveData();renderMaintenance();}});
+  }
+  function openMaintenance(id){
+    editingMaintenanceId=id||null; const m=id&&appData.maintenance.find(x=>x.id===id);
+    byId("maintenanceModalTitle").textContent=m?"Editar mantenimiento":"Añadir mantenimiento";
+    byId("maintenanceTitle").value=m?m.title:"";byId("maintenanceDueDate").value=m?m.dueDate:"";byId("maintenanceDueKm").value=m&&m.dueKm!==null?m.dueKm:"";byId("maintenanceDate").value=m?m.completedDate:"";byId("maintenanceCost").value=m&&m.cost!==null?m.cost:"";byId("maintenanceNotes").value=m?m.notes:"";openModal("maintenanceModal");
+  }
+  function saveMaintenance(){
+    const title=byId("maintenanceTitle").value.trim();if(!title){showToast("Indica una tarea.");return;}
+    const old=editingMaintenanceId&&appData.maintenance.find(m=>m.id===editingMaintenanceId);
+    const item=normalizeMaintenance({...(old||{}),id:editingMaintenanceId||"maint_"+Date.now(),title,dueDate:byId("maintenanceDueDate").value,dueKm:byId("maintenanceDueKm").value===""?null:Number(byId("maintenanceDueKm").value),completedDate:byId("maintenanceDate").value,cost:byId("maintenanceCost").value===""?null:Number(byId("maintenanceCost").value),notes:byId("maintenanceNotes").value,completed:Boolean(old&&old.completed)});
+    if(editingMaintenanceId)appData.maintenance=appData.maintenance.map(m=>m.id===editingMaintenanceId?item:m);else appData.maintenance.push(item);saveData();closeModal("maintenanceModal");renderMaintenance();renderStatistics();showToast("Mantenimiento guardado.");
+  }
+  function renderStatistics(){
+    const cycles=appData.history.filter(h=>h.type==="full"&&Number.isFinite(h.consumption)&&h.consumption>0);
+    const fuelCost=appData.history.reduce((s,h)=>s+(Number.isFinite(h.cost)?h.cost:0),0), expenses=appData.expenses.reduce((s,e)=>s+e.amount,0), km=appData.history.reduce((s,h)=>s+finiteNumber(h.km,0),0)+appData.routes.reduce((s,r)=>s+finiteNumber(r.usedKm,0),0), liters=appData.history.reduce((s,h)=>s+finiteNumber(h.liters,0),0);
+    const consumptions=cycles.map(h=>h.consumption), best=consumptions.length?Math.min(...consumptions):null, worst=consumptions.length?Math.max(...consumptions):null;
+    byId("statsConsumption").textContent=appData.realConsumption!==null?formatNumber(appData.realConsumption,2)+" L/100 km":"--";
+    byId("statsBestWorst").textContent=best===null?"--":formatNumber(best,2)+" / "+formatNumber(worst,2);
+    byId("statsKm").textContent=formatNumber(km,0)+" km";byId("statsFuelCost").textContent=formatNumber(fuelCost,2)+" €";byId("statsExpenseCost").textContent=formatNumber(expenses,2)+" €";byId("statsTotalCost").textContent=formatNumber(fuelCost+expenses,2)+" €";
+    byId("statsLiters").textContent=formatNumber(liters,2)+" L";
+    const svg=byId("statsChart"), groups={};appData.expenses.forEach(e=>groups[e.category]=(groups[e.category]||0)+e.amount);const keys=Object.keys(groups).slice(0,6),max=Math.max(1,...keys.map(k=>groups[k]));svg.innerHTML=keys.map((k,i)=>{const h=Math.round(groups[k]/max*80);return '<rect class="chart-bar" x="'+(i*58+12)+'" y="'+(90-h)+'" width="34" height="'+h+'" rx="5"></rect><text x="'+(i*58+29)+'" y="105" text-anchor="middle" fill="#9C9385" font-size="8">'+escapeHtml(k.slice(0,8))+'</text>';}).join("");
+  }
+  function exportData(){
+    const payload={format:"MotoRange",version:STORAGE_VERSION,exportedAt:new Date().toISOString(),data:appData};
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"}), url=URL.createObjectURL(blob), a=document.createElement("a");a.href=url;a.download="motorange-"+today()+".json";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+  function importData(file){
+    const reader=new FileReader();reader.onload=()=>{try{const parsed=JSON.parse(reader.result), incoming=parsed&&parsed.data?parsed.data:parsed;if(!incoming||typeof incoming!=="object")throw Error();if(!confirm("¿Importar estos datos y reemplazar los de esta moto?"))return;appData=normalizeData(incoming);saveData();render();renderExpenses();renderMaintenance();renderStatistics();showToast("Datos importados.");}catch(e){showToast("El archivo JSON no es válido.");}};reader.readAsText(file);
+  }
+  const baseRender=render;
+  render=function(){baseRender();renderRefuelActions();renderExpenses();renderMaintenance();renderStatistics();};
+  const baseNavigate=navigate;
+  navigate=function(page){if(["expenses","maintenance","statistics"].indexOf(page)>=0){currentPage=page;document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id==="page-"+page));document.querySelectorAll(".nav-btn").forEach(b=>b.classList.toggle("active",b.dataset.page===page));render();window.scrollTo({top:0,behavior:"instant"});return;}baseNavigate(page);};
+  byId("quickRefuel").onclick=openRefuelModal;byId("quickExpense").onclick=()=>{navigate("expenses");openExpense();};byId("quickMaintenance").onclick=()=>{navigate("maintenance");openMaintenance();};byId("quickRoute").onclick=()=>navigate("route");
+  byId("addExpenseBtn").onclick=()=>openExpense();byId("saveExpenseBtn").onclick=saveExpense;byId("addMaintenanceBtn").onclick=()=>openMaintenance();byId("saveMaintenanceBtn").onclick=saveMaintenance;
+  byId("expenseRecurringToggle").onclick=()=>{const on=!byId("expenseRecurringToggle").classList.contains("on");byId("expenseRecurringToggle").classList.toggle("on",on);byId("recurrenceFields").classList.toggle("show",on);};
+  byId("expenseFilterCategory").oninput=renderExpenses;
+  byId("expenseFilterPreset").onchange=()=>{byId("expenseCustomFilters").classList.toggle("hidden",byId("expenseFilterPreset").value!=="custom");renderExpenses();};
+  byId("expenseFilterFrom").onchange=renderExpenses;byId("expenseFilterTo").onchange=renderExpenses;
+  byId("expenseCustomFilters").classList.add("hidden");
+  document.querySelectorAll("[data-close-modal]").forEach(b=>b.onclick=()=>closeModal(b.dataset.closeModal));
+  byId("exportDataBtn").onclick=exportData;byId("importDataBtn").onclick=()=>byId("importDataInput").click();byId("importDataInput").onchange=e=>{if(e.target.files[0])importData(e.target.files[0]);};
+  render();
 })();
   if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
