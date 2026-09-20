@@ -3257,7 +3257,7 @@ routePage.innerHTML = `
 
 <div class="card">
 
-  <div class="route-live">
+  <div class="route-live" id="routeLivePanel" hidden>
 
     <div class="route-status">
       <span class="route-dot" id="routeDot"></span>
@@ -3293,7 +3293,7 @@ routePage.innerHTML = `
 
   </div>
 
-  <div class="route-actions">
+  <div class="route-actions" id="routeActions">
 
     <button
       class="button primary full"
@@ -3323,7 +3323,7 @@ routePage.innerHTML = `
 
 </div>
 
-<div class="card">
+<div class="card" id="routeActiveTools" hidden>
 
   <div class="card-title">
     Distancia del cuentakilómetros
@@ -3352,6 +3352,10 @@ routePage.innerHTML = `
     que marca el cuentakilómetros de la moto, ese valor tendrá prioridad
     para todos los cálculos de la ruta.
   </div>
+
+  <button class="button secondary" id="routeRefuelBtn" type="button">
+    ⛽ REGISTRAR REPOSTAJE
+  </button>
 
 </div>
 
@@ -4238,6 +4242,16 @@ function renderRoute(){
       "routeFinishBtn"
     );
 
+  const livePanel =
+    document.getElementById(
+      "routeLivePanel"
+    );
+
+  const activeTools =
+    document.getElementById(
+      "routeActiveTools"
+    );
+
   start.disabled =
     routeState.active;
 
@@ -4246,6 +4260,15 @@ function renderRoute(){
 
   finish.disabled =
     !routeState.active;
+
+  if(livePanel){
+    livePanel.hidden = !routeState.active;
+  }
+  if(activeTools){
+    activeTools.hidden = !routeState.active;
+  }
+  pause.hidden = !routeState.active;
+  finish.hidden = !routeState.active;
 
   start.style.opacity =
     routeState.active
@@ -4571,6 +4594,18 @@ document
   .addEventListener(
     "click",
     finishRoute
+  );
+
+document
+  .getElementById("routeRefuelBtn")
+  .addEventListener(
+    "click",
+    () => {
+      if(!routeState.active){
+        return;
+      }
+      openRefuelModal();
+    }
   );
 
 /* ---------- KM MANUALES ---------- */
@@ -5062,7 +5097,7 @@ renderRoute();
   function renderStatistics(){
     syncDerivedExpenses();
     const cycles=appData.history.filter(h=>h.type==="full"&&Number.isFinite(h.consumption)&&h.consumption>0);
-    const fuelCost=appData.history.reduce((s,h)=>s+(Number.isFinite(h.cost)?h.cost:0),0), expenses=appData.expenses.filter(e=>!(e.generated && e.sourceType==="fuel")).reduce((s,e)=>s+e.amount,0), km=appData.history.reduce((s,h)=>s+finiteNumber(h.km,0),0)+appData.routes.reduce((s,r)=>s+finiteNumber(r.usedKm,0),0), liters=appData.history.reduce((s,h)=>s+finiteNumber(h.liters,0),0);
+    const routeRefuelDates=new Set(appData.routes.reduce((dates,r)=>dates.concat(Array.isArray(r.refuels)?r.refuels.map(refuel=>refuel.date):[]),[])), fuelCost=appData.history.reduce((s,h)=>s+(Number.isFinite(h.cost)?h.cost:0),0), expenses=appData.expenses.filter(e=>!(e.generated && e.sourceType==="fuel")).reduce((s,e)=>s+e.amount,0), historyKm=appData.history.reduce((s,h)=>s+(routeRefuelDates.has(h.date)?0:finiteNumber(h.km,0)),0), km=historyKm+appData.routes.reduce((s,r)=>s+finiteNumber(r.usedKm,0),0), liters=appData.history.reduce((s,h)=>s+finiteNumber(h.liters,0),0);
     const totalCost=fuelCost+expenses, costDates=appData.history.map(h=>String(h.date||"").slice(0,10)).concat(appData.expenses.map(e=>String(e.date||"").slice(0,10))).filter(Boolean).sort(), firstCostDate=costDates[0] ? new Date(costDates[0]+"T12:00:00") : null, now=new Date(), monthsWithData=firstCostDate ? Math.max(1,(now.getFullYear()-firstCostDate.getFullYear())*12+now.getMonth()-firstCostDate.getMonth()+1) : 0;
     const consumptions=cycles.map(h=>h.consumption), best=consumptions.length?Math.min(...consumptions):null, worst=consumptions.length?Math.max(...consumptions):null;
     byId("statsConsumption").textContent=appData.realConsumption!==null?formatNumber(appData.realConsumption,2)+" L/100 km":"--";
