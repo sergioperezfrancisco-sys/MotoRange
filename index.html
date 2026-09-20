@@ -1367,7 +1367,8 @@ input[type="date"]{
   <div class="modal"><div class="modal-header"><h2 id="maintenanceModalTitle">Añadir mantenimiento</h2><button class="close" data-close-modal="maintenanceModal" type="button">×</button></div>
     <div class="field"><label for="maintenanceTitle">TAREA</label><input class="input" id="maintenanceTitle" type="text" maxlength="100"></div>
     <div class="input-row"><div class="field"><label for="maintenanceDueDate">FECHA LÍMITE</label><input class="input" id="maintenanceDueDate" type="date"></div><div class="field"><label for="maintenanceDueKm">KM LÍMITE</label><input class="input" id="maintenanceDueKm" type="number" min="0" step="1" inputmode="numeric"></div></div>
-    <div class="input-row"><div class="field"><label for="maintenanceDate">FECHA REALIZACIÓN</label><input class="input" id="maintenanceDate" type="date"></div><div class="field"><label for="maintenanceCost">COSTE · €</label><input class="input" id="maintenanceCost" type="number" min="0" step="0.01"></div></div>
+    <div class="input-row"><div class="field"><label for="maintenanceDate">FECHA REALIZACIÓN</label><input class="input" id="maintenanceDate" type="date"></div><div class="field"><label for="maintenanceCompletedKm">KM REALIZACIÓN</label><input class="input" id="maintenanceCompletedKm" type="number" min="0" step="1" inputmode="numeric"></div></div>
+    <div class="field"><label for="maintenanceCost">COSTE · €</label><input class="input" id="maintenanceCost" type="number" min="0" step="0.01"></div>
     <div class="field"><label for="maintenanceNotes">NOTAS</label><input class="input" id="maintenanceNotes" type="text" maxlength="240"></div>
     <button class="button primary" id="saveMaintenanceBtn" type="button">GUARDAR MANTENIMIENTO</button>
   </div>
@@ -1635,23 +1636,32 @@ function normalizeMaintenance(item){
     ? null
     : Number(rawDueKm);
   const recurrence = typeof item.recurrence === "string" ? item.recurrence : "";
-  const normalizedDueKm = (recurrence === "coolant" || recurrence === "brake-fluid") && dueKm === 0
+  const title = typeof item.title === "string" ? item.title.slice(0,100) : "Mantenimiento";
+  const titleSearch = title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const inferredRecurrence = recurrence || (
+    titleSearch.includes("refrigerante") ? "coolant" :
+    titleSearch.includes("liquido de frenos") ? "brake-fluid" : ""
+  );
+  const normalizedDueKm = (inferredRecurrence === "coolant" || inferredRecurrence === "brake-fluid") && dueKm === 0
     ? null
     : dueKm;
   return {
     id: typeof item.id === "string" && item.id ? item.id : "maint_" + Date.now() + "_" + Math.random().toString(36).slice(2,8),
-    title: typeof item.title === "string" ? item.title.slice(0,100) : "Mantenimiento",
+    title,
     dueDate: typeof item.dueDate === "string" ? item.dueDate : "",
     dueKm: Number.isFinite(normalizedDueKm) && normalizedDueKm >= 0 ? normalizedDueKm : null,
     completedDate: typeof item.completedDate === "string"
       ? item.completedDate
       : (typeof item.date === "string" ? item.date : ""),
+    completedKm: item.completedKm === null || item.completedKm === undefined || String(item.completedKm).trim() === ""
+      ? null
+      : (Number.isFinite(Number(item.completedKm)) && Number(item.completedKm) >= 0 ? Number(item.completedKm) : null),
     cost: Number.isFinite(Number(item.cost)) && Number(item.cost) >= 0 ? Number(item.cost) : null,
     notes: typeof item.notes === "string" ? item.notes.slice(0,240) : "",
     completed: Boolean(item.completed),
     scheduled: Boolean(item.scheduled),
     planKey: typeof item.planKey === "string" ? item.planKey.slice(0,80) : "",
-    recurrence
+    recurrence: inferredRecurrence
   };
 }
 
@@ -4882,7 +4892,7 @@ renderRoute();
       if(m.completed && m.cost !== null && Number.isFinite(m.cost)){
         sources.push(normalizeExpense({
           id:"maintenance_" + m.id, category:"Mantenimiento", amount:m.cost,
-          date:m.completedDate || today(), km:appData.totalKm, notes:m.title + (m.notes ? " · " + m.notes : ""),
+          date:m.completedDate || today(), km:m.completedKm !== null ? m.completedKm : appData.totalKm, notes:m.title + (m.notes ? " · " + m.notes : ""),
           generated:true, sourceType:"maintenance", sourceId:m.id
         }));
       }
@@ -5098,20 +5108,20 @@ renderRoute();
     const total = byId("maintenanceTotalKm"); if(total) total.textContent = formatInteger(appData.totalKm);
     const list=appData.maintenance.slice().sort((a,b)=>(a.completed-b.completed)||(a.dueDate||"").localeCompare(b.dueDate||"")||((a.dueKm===null?Infinity:a.dueKm)-(b.dueKm===null?Infinity:b.dueKm)));
     byId("maintenanceList").innerHTML=list.length?list.map(m=>{const status=maintenanceStatus(m);const label=m.completed?"Completado":status.overdue?"Atrasado":status.due?"Próximo":"Programado";const cls=m.completed?"maintenance-due":status.overdue?"maintenance-overdue":"maintenance-due";return '<div class="history-item"><div class="history-top"><strong>'+escapeHtml(m.title)+'</strong><span class="'+cls+'">'+label+'</span></div><div class="history-main"><div class="history-cell"><span>Fecha límite</span><strong>'+escapeHtml(m.dueDate||"--")+'</strong></div><div class="history-cell"><span>Km límite</span><strong>'+(m.dueKm===null?"--":formatNumber(m.dueKm,0))+'</strong></div><div class="history-cell"><span>Coste</span><strong>'+(m.cost===null?"--":formatNumber(m.cost,2)+" €")+'</strong></div></div>'+(m.notes?'<div class="history-cycle">'+escapeHtml(m.notes)+'</div>':'')+'<div class="record-actions"><button class="route-small-btn maintenance-edit" data-id="'+escapeHtml(m.id)+'">Editar</button><button class="route-small-btn maintenance-done" data-id="'+escapeHtml(m.id)+'">'+(m.completed?"Reabrir":"Completar")+'</button><button class="route-small-btn maintenance-delete" data-id="'+escapeHtml(m.id)+'">Eliminar</button></div></div>'}).join(""):'<div class="card history-empty">No hay mantenimientos registrados.</div>';
-    byId("maintenanceList").querySelectorAll(".history-item").forEach((item,index)=>{const dateCell=document.createElement("div");dateCell.className="history-cell";dateCell.innerHTML="<span>Fecha de realización</span><strong>"+escapeHtml(list[index].completedDate||"--")+"</strong>";const main=item.querySelector(".history-main");if(main)main.insertBefore(dateCell,main.children[1]||null);});
+    byId("maintenanceList").querySelectorAll(".history-item").forEach((item,index)=>{const dateCell=document.createElement("div");dateCell.className="history-cell";dateCell.innerHTML="<span>Fecha de realización</span><strong>"+escapeHtml(list[index].completedDate||"--")+"</strong>";const kmCell=document.createElement("div");kmCell.className="history-cell";kmCell.innerHTML="<span>Km de realización</span><strong>"+(list[index].completedKm===null?"--":formatNumber(list[index].completedKm,0))+"</strong>";const main=item.querySelector(".history-main");if(main){main.insertBefore(dateCell,main.children[1]||null);main.appendChild(kmCell);}});
     byId("maintenanceList").querySelectorAll(".maintenance-edit").forEach(b=>b.onclick=()=>openMaintenance(b.dataset.id));
-    byId("maintenanceList").querySelectorAll(".maintenance-done").forEach(b=>b.onclick=()=>{const m=appData.maintenance.find(x=>x.id===b.dataset.id);if(m){m.completed=!m.completed;m.completedDate=m.completed?today():"";if(m.completed&&m.scheduled){const baseKm=appData.totalKm;const kind=m.recurrence;if(kind==="service"){const next=nextMaintenanceKm("service",Math.max(baseKm,m.dueKm||0));addScheduledMaintenance({...m,id:"plan-service-"+next,planKey:"service-"+next,title:"Servicio oficial · "+formatInteger(next)+" km",dueKm:next,dueDate:"",completed:false,completedDate:""});}else if(kind==="valves"){const next=nextMaintenanceKm("valves",Math.max(baseKm,m.dueKm||0));addScheduledMaintenance({...m,id:"plan-valves-"+next,planKey:"valves-"+next,title:"Comprobar holgura de válvulas · "+formatInteger(next)+" km",dueKm:next,completed:false,completedDate:""});}else if(kind==="oil-level"){const next=Math.ceil((baseKm+1)/500)*500;addScheduledMaintenance({...m,id:"plan-oil-level-"+next,planKey:"oil-level-"+next,title:"Comprobar nivel de aceite · "+formatInteger(next)+" km",dueKm:next,completed:false,completedDate:""});}else if(kind==="coolant"||kind==="brake-fluid"){const next=maintenanceDatePlusYears(m.completedDate,2);addScheduledMaintenance({...m,id:"plan-"+kind+"-"+next,planKey:kind+"-"+next,dueDate:next,completed:false,completedDate:""});}}syncDerivedExpenses();saveData();renderMaintenance();renderStatistics();}});
+    byId("maintenanceList").querySelectorAll(".maintenance-done").forEach(b=>b.onclick=()=>{const m=appData.maintenance.find(x=>x.id===b.dataset.id);if(m){m.completed=!m.completed;m.completedDate=m.completed?today():"";m.completedKm=m.completed?appData.totalKm:null;if(m.completed&&m.scheduled){const baseKm=appData.totalKm;const kind=m.recurrence;if(kind==="service"){const next=nextMaintenanceKm("service",Math.max(baseKm,m.dueKm||0));addScheduledMaintenance({...m,id:"plan-service-"+next,planKey:"service-"+next,title:"Servicio oficial · "+formatInteger(next)+" km",dueKm:next,dueDate:"",completed:false,completedDate:""});}else if(kind==="valves"){const next=nextMaintenanceKm("valves",Math.max(baseKm,m.dueKm||0));addScheduledMaintenance({...m,id:"plan-valves-"+next,planKey:"valves-"+next,title:"Comprobar holgura de válvulas · "+formatInteger(next)+" km",dueKm:next,completed:false,completedDate:""});}else if(kind==="oil-level"){const next=Math.ceil((baseKm+1)/500)*500;addScheduledMaintenance({...m,id:"plan-oil-level-"+next,planKey:"oil-level-"+next,title:"Comprobar nivel de aceite · "+formatInteger(next)+" km",dueKm:next,completed:false,completedDate:""});}else if(kind==="coolant"||kind==="brake-fluid"){const next=maintenanceDatePlusYears(m.completedDate,2);addScheduledMaintenance({...m,id:"plan-"+kind+"-"+next,planKey:kind+"-"+next,dueDate:next,completed:false,completedDate:""});}}syncDerivedExpenses();saveData();renderMaintenance();renderStatistics();}});
     byId("maintenanceList").querySelectorAll(".maintenance-delete").forEach(b=>b.onclick=()=>{if(confirm("¿Eliminar este mantenimiento?")){appData.maintenance=appData.maintenance.filter(x=>x.id!==b.dataset.id);saveData();renderMaintenance();}});
   }
   function openMaintenance(id){
     editingMaintenanceId=id||null; const m=id&&appData.maintenance.find(x=>x.id===id);
     byId("maintenanceModalTitle").textContent=m?"Editar mantenimiento":"Añadir mantenimiento";
-    byId("maintenanceTitle").value=m?m.title:"";byId("maintenanceDueDate").value=m?m.dueDate:"";byId("maintenanceDueKm").value=m&&m.dueKm!==null?m.dueKm:"";byId("maintenanceDate").value=m?m.completedDate:"";byId("maintenanceCost").value=m&&m.cost!==null?m.cost:"";byId("maintenanceNotes").value=m?m.notes:"";openModal("maintenanceModal");
+    byId("maintenanceTitle").value=m?m.title:"";byId("maintenanceDueDate").value=m?m.dueDate:"";byId("maintenanceDueKm").value=m&&m.dueKm!==null?m.dueKm:"";byId("maintenanceDate").value=m?m.completedDate:"";byId("maintenanceCompletedKm").value=m&&m.completedKm!==null?m.completedKm:"";byId("maintenanceCost").value=m&&m.cost!==null?m.cost:"";byId("maintenanceNotes").value=m?m.notes:"";openModal("maintenanceModal");
   }
   function saveMaintenance(){
     const title=byId("maintenanceTitle").value.trim();if(!title){showToast("Indica una tarea.");return;}
     const old=editingMaintenanceId&&appData.maintenance.find(m=>m.id===editingMaintenanceId);
-    const item=normalizeMaintenance({...(old||{}),id:editingMaintenanceId||"maint_"+Date.now(),title,dueDate:byId("maintenanceDueDate").value,dueKm:byId("maintenanceDueKm").value===""?null:Number(byId("maintenanceDueKm").value),completedDate:byId("maintenanceDate").value,cost:byId("maintenanceCost").value===""?null:Number(byId("maintenanceCost").value),notes:byId("maintenanceNotes").value,completed:Boolean((old&&old.completed) || byId("maintenanceDate").value)});
+    const item=normalizeMaintenance({...(old||{}),id:editingMaintenanceId||"maint_"+Date.now(),title,dueDate:byId("maintenanceDueDate").value,dueKm:byId("maintenanceDueKm").value===""?null:Number(byId("maintenanceDueKm").value),completedDate:byId("maintenanceDate").value,completedKm:byId("maintenanceCompletedKm").value===""?null:Number(byId("maintenanceCompletedKm").value),cost:byId("maintenanceCost").value===""?null:Number(byId("maintenanceCost").value),notes:byId("maintenanceNotes").value,completed:Boolean((old&&old.completed) || byId("maintenanceDate").value)});
     if(editingMaintenanceId)appData.maintenance=appData.maintenance.map(m=>m.id===editingMaintenanceId?item:m);else appData.maintenance.push(item);syncDerivedExpenses();saveData();closeModal("maintenanceModal");renderMaintenance();renderStatistics();showToast("Mantenimiento guardado.");
   }
   function renderStatistics(){
