@@ -62,7 +62,7 @@ button{
   max-width:620px;
   margin:0 auto;
   min-height:100vh;
-  padding-bottom:132px;
+  padding-bottom:156px;
 }
 
 header{
@@ -448,7 +448,7 @@ header{
 .bottom-nav{
   position:fixed;
   left:50%;
-  bottom:max(6px, env(safe-area-inset-bottom));
+  bottom:max(10px, env(safe-area-inset-bottom));
   transform:translateX(-50%);
   width:min(calc(100% - 24px),580px);
   z-index:50;
@@ -456,11 +456,18 @@ header{
   backdrop-filter:blur(18px);
   -webkit-backdrop-filter:blur(18px);
   border:1px solid var(--border);
-  border-radius:16px;
-  padding:3px;
+  border-radius:20px;
+  padding:7px;
   display:grid;
   grid-template-columns:repeat(6,minmax(0,1fr));
   box-shadow:0 16px 45px rgba(0,0,0,.55);
+  transition:transform .24s ease,opacity .24s ease;
+}
+
+.bottom-nav.nav-hidden{
+  transform:translate(-50%,calc(100% + max(10px, env(safe-area-inset-bottom))));
+  opacity:0;
+  pointer-events:none;
 }
 
 .nav-btn{
@@ -468,15 +475,15 @@ header{
   background:transparent;
   color:var(--muted);
   border-radius:11px;
-  padding:5px 2px 4px;
-  font-size:8px;
+  padding:8px 3px 7px;
+  font-size:10px;
   font-weight:750;
 }
 
 .nav-btn.route-nav{
    grid-column:1 / -1;
    width:100%;
-   min-height:30px;
+   min-height:40px;
 }
 
 .nav-btn:not(.route-nav){
@@ -488,9 +495,9 @@ header{
 
 .nav-icon{
   display:block;
-  font-size:14px;
-  line-height:15px;
-  margin-bottom:1px;
+  font-size:18px;
+  line-height:19px;
+  margin-bottom:3px;
 }
 
 .nav-btn.active{
@@ -898,7 +905,7 @@ header{
 
 @media(min-width:700px){
   .app{
-    padding-bottom:132px;
+    padding-bottom:156px;
   }
   .page{
     padding-left:0;
@@ -1105,6 +1112,12 @@ header{
     </div>
     <div class="settings-note">Kilometraje total actual de esta moto. Se usa para calcular los avisos del mantenimiento oficial.</div>
 
+    <div class="field">
+      <label for="registrationDateInput">MATRICULACIÓN / PRIMERA REGISTRACIÓN</label>
+      <input class="input" id="registrationDateInput" type="date">
+    </div>
+    <div class="settings-note">Se usa como punto de partida para los mantenimientos periódicos por tiempo.</div>
+
     <div class="settings-note">
       El consumo inicial solo se utiliza como estimación mientras no existan ciclos completos válidos. No sobrescribe el consumo real aprendido.
     </div>
@@ -1233,13 +1246,13 @@ header{
     <span class="nav-icon">▤</span>
     Historial
   </button>
+  <button class="nav-btn" data-page="expenses"><span class="nav-icon">€</span>Gastos</button>
+  <button class="nav-btn" data-page="maintenance"><span class="nav-icon">🔧</span>Mantenimiento</button>
+  <button class="nav-btn" data-page="statistics"><span class="nav-icon">◒</span>Stats</button>
   <button class="nav-btn" data-page="settings">
     <span class="nav-icon">⚙</span>
     Ajustes
   </button>
-  <button class="nav-btn" data-page="expenses"><span class="nav-icon">€</span>Gastos</button>
-  <button class="nav-btn" data-page="maintenance"><span class="nav-icon">🔧</span>Mantenimiento</button>
-  <button class="nav-btn" data-page="statistics"><span class="nav-icon">◒</span>Stats</button>
 </nav>
 
 </div>
@@ -1319,7 +1332,7 @@ header{
 "use strict";
 
 const STORAGE_KEY = "motorange_app_v2";
-const STORAGE_VERSION = 4;
+const STORAGE_VERSION = 5;
 const LEGACY_STORAGE_KEY = "motorange_app_v1";
 const MAINTENANCE_MILESTONES = [1000,10000,20000,30000,40000,50000,60000];
 const DEFAULT_MAINTENANCE_PLAN = {leadKm:500, leadDays:30};
@@ -1338,6 +1351,7 @@ const DEFAULT_DATA = {
   // Estado actual del tramo desde el último repostaje.
   kmSinceRefuel: 0,
   totalKm: 0,
+  registrationDate: "",
 
   // Acumuladores del ciclo actual desde el último depósito lleno.
   // Solo se modifican al registrar un repostaje.
@@ -1373,6 +1387,12 @@ function positiveNumber(value, fallback){
 function nonNegativeNumber(value, fallback = 0){
   const n = Number(value);
   return Number.isFinite(n) && n >= 0 ? n : fallback;
+}
+
+function normalizeDate(value){
+  if(typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return "";
+  const parsed = new Date(value + "T12:00:00");
+  return Number.isNaN(parsed.getTime()) ? "" : value;
 }
 
 function clamp(value, min, max){
@@ -1476,6 +1496,9 @@ function normalizeData(raw){
     DEFAULT_DATA.kmSinceRefuel
   );
   data.totalKm = nonNegativeNumber(data.totalKm, 0);
+  data.registrationDate = normalizeDate(
+    data.registrationDate || data.firstRegistrationDate || data.firstRegistration
+  );
   const plan = data.maintenancePlan && typeof data.maintenancePlan === "object" ? data.maintenancePlan : {};
   data.maintenancePlan = {
     leadKm: nonNegativeNumber(plan.leadKm, DEFAULT_MAINTENANCE_PLAN.leadKm),
@@ -1618,6 +1641,9 @@ function migrateLegacyData(){
       kmSinceRefuel: nonNegativeNumber(
         legacy.kmSinceRefuel ?? legacy.km,
         DEFAULT_DATA.kmSinceRefuel
+      ),
+      registrationDate: normalizeDate(
+        legacy.registrationDate || legacy.firstRegistrationDate || legacy.firstRegistration
       ),
 
       // Legacy data cannot reliably seed real consumption.
@@ -2112,6 +2138,7 @@ function renderSettings(){
   const reserveInput = document.getElementById("reserveInput");
   const fuelInput = document.getElementById("fuelInput");
   const totalKmInput = document.getElementById("totalKmInput");
+  const registrationDateInput = document.getElementById("registrationDateInput");
   const maintenanceLeadKm = document.getElementById("maintenanceLeadKm");
   const maintenanceLeadDays = document.getElementById("maintenanceLeadDays");
 
@@ -2139,6 +2166,7 @@ function renderSettings(){
       formatInputValue(appData.fuel);
   }
   if(document.activeElement !== totalKmInput) totalKmInput.value = formatInputValue(appData.totalKm);
+  if(document.activeElement !== registrationDateInput) registrationDateInput.value = appData.registrationDate;
   if(document.activeElement !== maintenanceLeadKm) maintenanceLeadKm.value = formatInputValue(appData.maintenancePlan.leadKm);
   if(document.activeElement !== maintenanceLeadDays) maintenanceLeadDays.value = formatInputValue(appData.maintenancePlan.leadDays);
 
@@ -2745,6 +2773,12 @@ function setupEvents(){
     }
   });
 
+  document.getElementById("registrationDateInput").addEventListener("input", event => {
+    appData.registrationDate = normalizeDate(event.target.value);
+    saveData();
+    renderMaintenance();
+  });
+
   document.getElementById("maintenanceLeadKm").addEventListener("input", event => {
     const value = Number(event.target.value);
     if(Number.isFinite(value) && value >= 0){ appData.maintenancePlan.leadKm = value; saveData(); renderMaintenance(); }
@@ -3334,6 +3368,23 @@ Ruta
 nav.appendChild(
   routeNav
 );
+
+let lastScrollY = window.scrollY;
+let scrollTicking = false;
+window.addEventListener("scroll", () => {
+  if(scrollTicking) return;
+  scrollTicking = true;
+  window.requestAnimationFrame(() => {
+    const currentScrollY = window.scrollY;
+    if(currentScrollY <= 12 || currentScrollY < lastScrollY){
+      nav.classList.remove("nav-hidden");
+    }else if(currentScrollY > lastScrollY + 4){
+      nav.classList.add("nav-hidden");
+    }
+    lastScrollY = currentScrollY;
+    scrollTicking = false;
+  });
+},{passive:true});
 
 routeNav.addEventListener(
   "click",
@@ -4846,6 +4897,11 @@ renderRoute();
     d.setDate(d.getDate() + days);
     return d.toISOString().slice(0,10);
   }
+  function maintenanceDatePlusYears(date, years){
+    const d = new Date(date + "T12:00:00");
+    d.setFullYear(d.getFullYear() + years);
+    return d.toISOString().slice(0,10);
+  }
   function nextMaintenanceKm(kind, after){
     if(kind === "service") return MAINTENANCE_MILESTONES.find(k => k > after) || Math.ceil((after + 1) / 10000) * 10000;
     return Math.ceil((after + 1) / 20000) * 20000;
@@ -4874,12 +4930,20 @@ renderRoute();
       title:"Comprobar nivel de aceite · " + formatInteger(oilCheckKm) + " km", dueKm:oilCheckKm, dueDate:"",
       notes:"Comprobación oficial cada 500 km. Manual oficial Voge 900 DSX, págs. 143–145.", recurrence:"oil-level"
     });
-    const dueDate = maintenanceDatePlus(today(), 730);
-    ["coolant","brake-fluid"].forEach((kind) => addScheduledMaintenance({
-      id:"plan-" + kind + "-" + dueDate, planKey:kind + "-" + dueDate, scheduled:true,
-      title:kind === "coolant" ? "Sustituir líquido refrigerante · 2 años" : "Sustituir líquido de frenos · 2 años",
-      dueKm:null, dueDate, notes:"Intervalo oficial cada 2 años. Manual oficial Voge 900 DSX, págs. 143–145.", recurrence:kind
-    }));
+    const dueDate = maintenanceDatePlusYears(appData.registrationDate || today(), 2);
+    ["coolant","brake-fluid"].forEach((kind) => {
+      const existing = appData.maintenance.find(m => !m.completed && m.scheduled && m.recurrence === kind);
+      if(existing && appData.registrationDate){
+        existing.dueDate = dueDate;
+        existing.planKey = kind + "-" + dueDate;
+      }else if(!existing){
+        addScheduledMaintenance({
+          id:"plan-" + kind + "-" + dueDate, planKey:kind + "-" + dueDate, scheduled:true,
+          title:kind === "coolant" ? "Sustituir líquido refrigerante · 2 años" : "Sustituir líquido de frenos · 2 años",
+          dueKm:null, dueDate, notes:"Intervalo oficial cada 2 años. Manual oficial Voge 900 DSX, págs. 143–145.", recurrence:kind
+        });
+      }
+    });
   }
   function maintenanceStatus(m){
     const now = today(), current = appData.totalKm;
@@ -4919,7 +4983,7 @@ renderRoute();
     const list=appData.maintenance.slice().sort((a,b)=>(a.completed-b.completed)||(a.dueDate||"").localeCompare(b.dueDate||"")||(a.dueKm||0)-(b.dueKm||0));
     byId("maintenanceList").innerHTML=list.length?list.map(m=>{const status=maintenanceStatus(m);const label=m.completed?"Completado":status.overdue?"Atrasado":status.due?"Próximo":"Programado";const cls=m.completed?"maintenance-due":status.overdue?"maintenance-overdue":"maintenance-due";return '<div class="history-item"><div class="history-top"><strong>'+escapeHtml(m.title)+'</strong><span class="'+cls+'">'+label+'</span></div><div class="history-main"><div class="history-cell"><span>Fecha límite</span><strong>'+escapeHtml(m.dueDate||"--")+'</strong></div><div class="history-cell"><span>Km límite</span><strong>'+(m.dueKm===null?"--":formatNumber(m.dueKm,0))+'</strong></div></div>'+(m.notes?'<div class="history-cycle">'+escapeHtml(m.notes)+'</div>':'')+'<div class="record-actions"><button class="route-small-btn maintenance-edit" data-id="'+escapeHtml(m.id)+'">Editar</button><button class="route-small-btn maintenance-done" data-id="'+escapeHtml(m.id)+'">'+(m.completed?"Reabrir":"Completar")+'</button><button class="route-small-btn maintenance-delete" data-id="'+escapeHtml(m.id)+'">Eliminar</button></div></div>'}).join(""):'<div class="card history-empty">No hay mantenimientos registrados.</div>';
     byId("maintenanceList").querySelectorAll(".maintenance-edit").forEach(b=>b.onclick=()=>openMaintenance(b.dataset.id));
-    byId("maintenanceList").querySelectorAll(".maintenance-done").forEach(b=>b.onclick=()=>{const m=appData.maintenance.find(x=>x.id===b.dataset.id);if(m){m.completed=!m.completed;m.completedDate=m.completed?today():"";if(m.completed&&m.scheduled){const baseKm=appData.totalKm;const kind=m.recurrence;if(kind==="service"){const next=nextMaintenanceKm("service",Math.max(baseKm,m.dueKm||0));addScheduledMaintenance({...m,id:"plan-service-"+next,planKey:"service-"+next,title:"Servicio oficial · "+formatInteger(next)+" km",dueKm:next,dueDate:"",completed:false,completedDate:""});}else if(kind==="valves"){const next=nextMaintenanceKm("valves",Math.max(baseKm,m.dueKm||0));addScheduledMaintenance({...m,id:"plan-valves-"+next,planKey:"valves-"+next,title:"Comprobar holgura de válvulas · "+formatInteger(next)+" km",dueKm:next,completed:false,completedDate:""});}else if(kind==="oil-level"){const next=Math.ceil((baseKm+1)/500)*500;addScheduledMaintenance({...m,id:"plan-oil-level-"+next,planKey:"oil-level-"+next,title:"Comprobar nivel de aceite · "+formatInteger(next)+" km",dueKm:next,completed:false,completedDate:""});}else if(kind==="coolant"||kind==="brake-fluid"){const next=maintenanceDatePlus(m.completedDate,730);addScheduledMaintenance({...m,id:"plan-"+kind+"-"+next,planKey:kind+"-"+next,dueDate:next,completed:false,completedDate:""});}}saveData();renderMaintenance();renderStatistics();}});
+    byId("maintenanceList").querySelectorAll(".maintenance-done").forEach(b=>b.onclick=()=>{const m=appData.maintenance.find(x=>x.id===b.dataset.id);if(m){m.completed=!m.completed;m.completedDate=m.completed?today():"";if(m.completed&&m.scheduled){const baseKm=appData.totalKm;const kind=m.recurrence;if(kind==="service"){const next=nextMaintenanceKm("service",Math.max(baseKm,m.dueKm||0));addScheduledMaintenance({...m,id:"plan-service-"+next,planKey:"service-"+next,title:"Servicio oficial · "+formatInteger(next)+" km",dueKm:next,dueDate:"",completed:false,completedDate:""});}else if(kind==="valves"){const next=nextMaintenanceKm("valves",Math.max(baseKm,m.dueKm||0));addScheduledMaintenance({...m,id:"plan-valves-"+next,planKey:"valves-"+next,title:"Comprobar holgura de válvulas · "+formatInteger(next)+" km",dueKm:next,completed:false,completedDate:""});}else if(kind==="oil-level"){const next=Math.ceil((baseKm+1)/500)*500;addScheduledMaintenance({...m,id:"plan-oil-level-"+next,planKey:"oil-level-"+next,title:"Comprobar nivel de aceite · "+formatInteger(next)+" km",dueKm:next,completed:false,completedDate:""});}else if(kind==="coolant"||kind==="brake-fluid"){const next=maintenanceDatePlusYears(m.completedDate,2);addScheduledMaintenance({...m,id:"plan-"+kind+"-"+next,planKey:kind+"-"+next,dueDate:next,completed:false,completedDate:""});}}saveData();renderMaintenance();renderStatistics();}});
     byId("maintenanceList").querySelectorAll(".maintenance-delete").forEach(b=>b.onclick=()=>{if(confirm("¿Eliminar este mantenimiento?")){appData.maintenance=appData.maintenance.filter(x=>x.id!==b.dataset.id);saveData();renderMaintenance();}});
   }
   function openMaintenance(id){
