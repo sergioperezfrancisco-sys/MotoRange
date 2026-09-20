@@ -689,6 +689,14 @@ header{
   width:100%;
   max-width:100%;
   min-width:0;
+  -webkit-appearance:none;
+  appearance:none;
+}
+
+.registration-field{
+  width:100%;
+  max-width:100%;
+  overflow:hidden;
 }
 
 .input:focus{
@@ -1149,7 +1157,7 @@ input[type="date"]{
     </div>
     <div class="settings-note">Kilometraje total actual de esta moto. Se usa para calcular los avisos del mantenimiento oficial.</div>
 
-    <div class="field">
+    <div class="field registration-field">
       <label for="registrationDateInput">MATRICULACIÓN / PRIMERA REGISTRACIÓN</label>
       <input class="input" id="registrationDateInput" type="date">
     </div>
@@ -1267,6 +1275,8 @@ input[type="date"]{
     <div class="history-stat"><span>Coste combustible</span><strong id="statsFuelCost">0 €</strong></div>
     <div class="history-stat"><span>Otros gastos</span><strong id="statsExpenseCost">0 €</strong></div>
     <div class="history-stat"><span>Coste total</span><strong id="statsTotalCost">0 €</strong></div>
+    <div class="history-stat"><span>Coste medio por km</span><strong id="statsAverageCost">--</strong></div>
+    <div class="history-stat"><span>Coste medio mensual</span><strong id="statsMonthlyAverage">--</strong></div>
   </div>
   <div class="card"><div class="card-title">Distribución por categoría</div><svg class="mini-chart" id="statsChart" viewBox="0 0 360 110" role="img" aria-label="Gastos por categoría"></svg></div>
   <div class="card data-actions"><button class="button secondary" id="exportDataBtn" type="button">EXPORTAR JSON</button><button class="button secondary" id="importDataBtn" type="button">IMPORTAR JSON</button><input id="importDataInput" type="file" accept="application/json,.json" class="hidden"></div>
@@ -3279,11 +3289,6 @@ routePage.innerHTML = `
         <strong id="routeTime">00:00:00</strong>
       </div>
 
-      <div class="route-stat">
-        <span>Repostajes</span>
-        <strong id="routeRefuelCount">0</strong>
-      </div>
-
     </div>
 
   </div>
@@ -3347,20 +3352,6 @@ routePage.innerHTML = `
     que marca el cuentakilómetros de la moto, ese valor tendrá prioridad
     para todos los cálculos de la ruta.
   </div>
-
-  <button class="button secondary" id="routeRefuelBtn" type="button" hidden>
-    ⛽ REGISTRAR REPOSTAJE
-  </button>
-
-</div>
-
-<div class="card">
-
-  <div class="card-title">
-    Repostajes de la ruta
-  </div>
-
-  <div id="routeRefuelList"></div>
 
 </div>
 
@@ -4181,11 +4172,6 @@ function renderRoute(){
       routeElapsed()
     );
 
-  document.getElementById(
-    "routeRefuelCount"
-  ).textContent =
-    routeState.refuels.length;
-
   const manual =
     document.getElementById(
       "routeManualKm"
@@ -4252,11 +4238,6 @@ function renderRoute(){
       "routeFinishBtn"
     );
 
-  const refuelButton =
-    document.getElementById(
-      "routeRefuelBtn"
-    );
-
   start.disabled =
     routeState.active;
 
@@ -4265,10 +4246,6 @@ function renderRoute(){
 
   finish.disabled =
     !routeState.active;
-
-  if(refuelButton){
-    refuelButton.hidden = !routeState.active;
-  }
 
   start.style.opacity =
     routeState.active
@@ -4280,7 +4257,6 @@ function renderRoute(){
       ? "▶ CONTINUAR"
       : "⏸ PAUSAR";
 
-  renderRouteRefuels();
   renderRouteHistory();
 
 }
@@ -4597,27 +4573,6 @@ document
     finishRoute
   );
 
-document
-  .getElementById("routeRefuelBtn")
-  .addEventListener(
-    "click",
-    () => {
-
-      if(!routeState.active){
-
-        showToast(
-          "Inicia una ruta antes de registrar un repostaje de ruta."
-        );
-
-        return;
-      }
-
-      openRefuelModal();
-
-    }
-  );
-
-
 /* ---------- KM MANUALES ---------- */
 
 document
@@ -4807,7 +4762,7 @@ renderRoute();
   const expensePeriods = {weekly:7, monthly:30, bimonthly:60, quarterly:91, semiannual:182, annual:365};
   let editingExpenseId = null;
   let editingMaintenanceId = null;
-  const collapsedExpenseMonths = new Set();
+  let collapsedExpenseMonths = null;
 
   function today(){ return new Date().toISOString().slice(0,10); }
   function byId(id){ return document.getElementById(id); }
@@ -4985,6 +4940,9 @@ renderRoute();
     renderExpenseChart(items);
     const groups = {};
     items.forEach(e => { const key=e.date.slice(0,7); if(!groups[key]) groups[key]=[]; groups[key].push(e); });
+    if(collapsedExpenseMonths === null){
+      collapsedExpenseMonths = new Set(Object.keys(groups));
+    }
     byId("expenseList").innerHTML = items.length ? Object.keys(groups).sort().reverse().map(month => {
       const monthItems = groups[month], monthTotal = monthItems.reduce((s,e)=>s+e.amount,0), collapsed = collapsedExpenseMonths.has(month);
       const records = monthItems.map(e => '<div class="history-item"><div class="history-top"><strong>' + escapeHtml(e.category) + (e.generated ? ' <span class="badge legacy">Automático</span>' : '') + '</strong><span class="history-date">' + escapeHtml(e.date) + '</span></div><div class="history-main"><div class="history-cell"><span>Importe</span><strong>' + formatNumber(e.amount,2) + ' €</strong></div><div class="history-cell"><span>Km</span><strong>' + (e.km === null ? "--" : formatNumber(e.km,1)) + '</strong></div></div>' + (e.notes ? '<div class="history-cycle">' + escapeHtml(e.notes) + '</div>' : '') + (e.generated ? '<div class="settings-note">Derivado automáticamente del registro original.</div>' : '<div class="record-actions"><button class="route-small-btn expense-edit" data-id="' + escapeHtml(e.id) + '">Editar</button><button class="route-small-btn expense-delete" data-id="' + escapeHtml(e.id) + '">Eliminar</button>' + (e.recurrence.enabled ? '<button class="route-small-btn expense-pause" data-id="' + escapeHtml(e.id) + '">' + (e.recurrence.paused ? "Reanudar" : "Pausar") + '</button>' : '') + '</div>') + '</div>').join("");
@@ -5105,10 +5063,11 @@ renderRoute();
     syncDerivedExpenses();
     const cycles=appData.history.filter(h=>h.type==="full"&&Number.isFinite(h.consumption)&&h.consumption>0);
     const fuelCost=appData.history.reduce((s,h)=>s+(Number.isFinite(h.cost)?h.cost:0),0), expenses=appData.expenses.filter(e=>!(e.generated && e.sourceType==="fuel")).reduce((s,e)=>s+e.amount,0), km=appData.history.reduce((s,h)=>s+finiteNumber(h.km,0),0)+appData.routes.reduce((s,r)=>s+finiteNumber(r.usedKm,0),0), liters=appData.history.reduce((s,h)=>s+finiteNumber(h.liters,0),0);
+    const totalCost=fuelCost+expenses, costDates=appData.history.map(h=>String(h.date||"").slice(0,10)).concat(appData.expenses.map(e=>String(e.date||"").slice(0,10))).filter(Boolean).sort(), firstCostDate=costDates[0] ? new Date(costDates[0]+"T12:00:00") : null, now=new Date(), monthsWithData=firstCostDate ? Math.max(1,(now.getFullYear()-firstCostDate.getFullYear())*12+now.getMonth()-firstCostDate.getMonth()+1) : 0;
     const consumptions=cycles.map(h=>h.consumption), best=consumptions.length?Math.min(...consumptions):null, worst=consumptions.length?Math.max(...consumptions):null;
     byId("statsConsumption").textContent=appData.realConsumption!==null?formatNumber(appData.realConsumption,2)+" L/100 km":"--";
     byId("statsBestWorst").textContent=best===null?"--":formatNumber(best,2)+" / "+formatNumber(worst,2);
-    byId("statsKm").textContent=formatNumber(km,0)+" km";byId("statsFuelCost").textContent=formatNumber(fuelCost,2)+" €";byId("statsExpenseCost").textContent=formatNumber(expenses,2)+" €";byId("statsTotalCost").textContent=formatNumber(fuelCost+expenses,2)+" €";
+    byId("statsKm").textContent=formatNumber(km,0)+" km";byId("statsFuelCost").textContent=formatNumber(fuelCost,2)+" €";byId("statsExpenseCost").textContent=formatNumber(expenses,2)+" €";byId("statsTotalCost").textContent=formatNumber(totalCost,2)+" €";byId("statsAverageCost").textContent=km>0?formatNumber(totalCost/km,2)+" €/km":"--";byId("statsMonthlyAverage").textContent=monthsWithData?formatNumber(totalCost/monthsWithData,2)+" €/mes":"--";
     byId("statsLiters").textContent=formatNumber(liters,2)+" L";
     const svg=byId("statsChart"), groups={};appData.expenses.forEach(e=>groups[e.category]=(groups[e.category]||0)+e.amount);const keys=Object.keys(groups).slice(0,6),max=Math.max(1,...keys.map(k=>groups[k]));svg.innerHTML=keys.map((k,i)=>{const h=Math.round(groups[k]/max*80);return '<title>'+escapeHtml(k)+': '+formatNumber(groups[k],2)+' €</title><rect class="chart-bar" x="'+(i*58+12)+'" y="'+(90-h)+'" width="34" height="'+h+'" rx="5"></rect><text class="chart-value" x="'+(i*58+29)+'" y="'+Math.max(10,84-h)+'" text-anchor="middle" font-size="8">'+formatNumber(groups[k],0)+' €</text><text x="'+(i*58+29)+'" y="105" text-anchor="middle" fill="#9C9385" font-size="8">'+escapeHtml(k.slice(0,8))+'</text>';}).join("");
   }
